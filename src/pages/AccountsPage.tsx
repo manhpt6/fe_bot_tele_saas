@@ -3,10 +3,25 @@ import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation }
 import { useGetProductsQuery } from '../api/productApi';
 import { Users, Upload, Trash2, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const AccountsPage = () => {
-  const { data: accounts = [], isLoading: accountsLoading } = useGetAccountsQuery();
-  const { data: products = [] } = useGetProductsQuery();
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  const { data: pageResponse, isLoading: accountsLoading } = useGetAccountsQuery({
+    page,
+    size: 10,
+    keyword: debouncedSearchTerm
+  });
+  
+  const accounts = pageResponse?.content || [];
+  
+  const { data: productPage } = useGetProductsQuery({ size: 100 });
+  const products = productPage?.content || [];
+  
   const [deleteAccount] = useDeleteAccountMutation();
   const [importExcel, { isLoading: isImporting }] = useImportExcelMutation();
   
@@ -68,18 +83,19 @@ export const AccountsPage = () => {
       {activeTab === 'LIST' ? (
         <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
           <div className="p-4 border-b border-slate-700/50 flex items-center space-x-4">
-            <div className="relative flex-1">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
                 type="text" 
-                placeholder="Tìm kiếm account..." 
+                placeholder="Tìm kiếm account (email, user...)" 
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <button className="btn bg-slate-800 border border-slate-700 hover:bg-slate-700 flex items-center space-x-2">
-              <Filter size={18} />
-              <span>Lọc</span>
-            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -137,6 +153,16 @@ export const AccountsPage = () => {
               </tbody>
             </table>
           </div>
+
+          {pageResponse && (
+            <Pagination
+              currentPage={pageResponse.pageNumber}
+              totalPages={pageResponse.totalPages}
+              totalElements={pageResponse.totalElements}
+              pageSize={pageResponse.pageSize}
+              onPageChange={setPage}
+            />
+          )}
         </div>
       ) : (
         <div className="glass p-6 rounded-xl border border-slate-700/50 max-w-2xl">

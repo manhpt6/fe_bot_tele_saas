@@ -1,10 +1,23 @@
 import { useState } from 'react';
 import { useGetCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '../api/categoryApi';
-import { Plus, Edit2, Trash2, FolderTree, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, FolderTree, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const CategoriesPage = () => {
-  const { data: categories = [], isLoading } = useGetCategoriesQuery();
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  const { data: pageResponse, isLoading } = useGetCategoriesQuery({
+    page,
+    size: 10,
+    keyword: debouncedSearchTerm
+  });
+  
+  const categories = pageResponse?.content || [];
+  
   const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
   const [updateCategory] = useUpdateCategoryMutation();
   const [deleteCategory] = useDeleteCategoryMutation();
@@ -77,6 +90,22 @@ export const CategoriesPage = () => {
         </button>
       </div>
 
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm danh mục..." 
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
+            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
       <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -139,6 +168,16 @@ export const CategoriesPage = () => {
             </tbody>
           </table>
         </div>
+        
+        {pageResponse && (
+          <Pagination
+            currentPage={pageResponse.pageNumber}
+            totalPages={pageResponse.totalPages}
+            totalElements={pageResponse.totalElements}
+            pageSize={pageResponse.pageSize}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       {/* Modal */}

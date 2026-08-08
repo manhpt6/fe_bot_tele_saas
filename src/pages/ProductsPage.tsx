@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery } from '../api/categoryApi';
-import { Plus, Edit2, Trash2, Package, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const ProductsPage = () => {
-  const { data: products = [], isLoading } = useGetProductsQuery();
-  const { data: categories = [] } = useGetCategoriesQuery();
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  const { data: pageResponse, isLoading } = useGetProductsQuery({ 
+    page, 
+    size: 10,
+    keyword: debouncedSearchTerm
+  });
+  
+  const products = pageResponse?.content || [];
+  const { data: categories = [] } = useGetCategoriesQuery({});
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
@@ -98,6 +110,22 @@ export const ProductsPage = () => {
         </button>
       </div>
 
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm sản phẩm theo tên, mô tả..." 
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
+            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
       <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -166,6 +194,16 @@ export const ProductsPage = () => {
             </tbody>
           </table>
         </div>
+        
+        {pageResponse && (
+          <Pagination
+            currentPage={pageResponse.pageNumber}
+            totalPages={pageResponse.totalPages}
+            totalElements={pageResponse.totalElements}
+            pageSize={pageResponse.pageSize}
+            onPageChange={setPage}
+          />
+        )}
       </div>
 
       {/* Modal Thêm Sản Phẩm */}

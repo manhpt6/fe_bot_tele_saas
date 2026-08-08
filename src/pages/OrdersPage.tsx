@@ -1,9 +1,22 @@
 import { useGetOrdersQuery, useConfirmOrderMutation } from '../api/orderApi';
-import { ShoppingCart, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { ShoppingCart, CheckCircle, Clock, XCircle, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { Pagination } from '../components/ui/Pagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const OrdersPage = () => {
-  const { data: orders = [], isLoading } = useGetOrdersQuery();
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  const { data: pageResponse, isLoading } = useGetOrdersQuery({
+    page,
+    size: 10,
+    keyword: debouncedSearchTerm
+  });
+  
+  const orders = pageResponse?.content || [];
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();
 
   const handleConfirm = async (orderCode: string) => {
@@ -22,6 +35,22 @@ export const OrdersPage = () => {
       <div>
         <h1 className="text-2xl font-bold text-white">Quản lý Đơn hàng</h1>
         <p className="text-gray-400 mt-1">Theo dõi giao dịch và duyệt đơn hàng thủ công</p>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm mã đơn, tên khách..." 
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
+            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
@@ -53,7 +82,7 @@ export const OrdersPage = () => {
                   </td>
                 </tr>
               ) : (
-                [...orders].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((order) => (
+                orders.map((order) => (
                   <tr key={order.id} className="border-b border-slate-700/20 hover:bg-slate-800/30 transition-colors">
                     <td className="p-4 font-mono font-medium text-white">{order.orderCode}</td>
                     <td className="p-4">
@@ -99,6 +128,16 @@ export const OrdersPage = () => {
             </tbody>
           </table>
         </div>
+        
+        {pageResponse && (
+          <Pagination
+            currentPage={pageResponse.pageNumber}
+            totalPages={pageResponse.totalPages}
+            totalElements={pageResponse.totalElements}
+            pageSize={pageResponse.pageSize}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </div>
   );
