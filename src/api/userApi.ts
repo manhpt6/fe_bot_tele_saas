@@ -27,6 +27,11 @@ export interface UserUpdateRequest {
   newPassword?: string;
 }
 
+export interface ChangePasswordRequest {
+  oldPassword?: string;
+  newPassword?: string;
+}
+
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMe: builder.query<User, void>({
@@ -64,6 +69,13 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+    changePassword: builder.mutation<void, ChangePasswordRequest>({
+      query: (data) => ({
+        url: '/users/me/password',
+        method: 'PUT',
+        body: data,
+      }),
+    }),
     deleteUser: builder.mutation<void, number>({
       query: (id) => ({
         url: `/users/${id}`,
@@ -80,5 +92,6 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useUpdateMeMutation,
+  useChangePasswordMutation,
   useDeleteUserMutation,
 } = userApi;

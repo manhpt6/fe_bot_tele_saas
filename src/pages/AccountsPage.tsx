@@ -9,12 +9,16 @@ import { useDebounce } from '../hooks/useDebounce';
 export const AccountsPage = () => {
   const [page, setPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterProductId, setFilterProductId] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const { data: pageResponse, isLoading: accountsLoading } = useGetAccountsQuery({
     page,
     size: 10,
-    keyword: debouncedSearchTerm
+    keyword: debouncedSearchTerm,
+    productId: filterProductId ? Number(filterProductId) : undefined,
+    status: filterStatus || undefined
   });
   
   const accounts = pageResponse?.content || [];
@@ -136,19 +140,51 @@ export const AccountsPage = () => {
 
       {activeTab === 'LIST' ? (
         <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50 flex items-center space-x-4">
-            <div className="relative flex-1 max-w-md">
+          <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
                 type="text" 
-                placeholder="Tìm kiếm account (email, user...)" 
+                placeholder="Tìm kiếm account (dữ liệu)..." 
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setPage(0);
                 }}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            
+            <div className="flex w-full sm:w-auto gap-4">
+              <div className="relative w-full sm:w-48">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <select 
+                  value={filterProductId}
+                  onChange={(e) => {
+                    setFilterProductId(e.target.value);
+                    setPage(0);
+                  }}
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                >
+                  <option value="">Tất cả sản phẩm</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <select 
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(0);
+                }}
+                className="w-full sm:w-40 bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Mọi trạng thái</option>
+                <option value="AVAILABLE">Đang rảnh</option>
+                <option value="SOLD">Đã bán</option>
+              </select>
             </div>
           </div>
           <div className="overflow-x-auto">
