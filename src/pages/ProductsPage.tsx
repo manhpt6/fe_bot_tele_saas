@@ -232,9 +232,15 @@ export const ProductsPage = () => {
                     <td className="p-4 text-sm">{product.deliveryMode === 'AUTO' ? 'Tự động' : 'Thủ công'}</td>
                     <td className="p-4">
                       {product.isActive ? (
-                        <span className="text-green-400 text-sm">Đang bán</span>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400 flex w-fit items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          Đang bán
+                        </span>
                       ) : (
-                        <span className="text-slate-500 text-sm">Đã ẩn</span>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/20 text-slate-400 flex w-fit items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                          Tạm ngừng
+                        </span>
                       )}
                     </td>
                     <td className="p-4 text-right space-x-2">
@@ -357,6 +363,27 @@ export const ProductsPage = () => {
                   <option value="MULTI_LINE">Chi tiết nhiều dòng (Tài khoản: abc...)</option>
                   <option value="RAW">Một dòng thô (abc|123...)</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-3 cursor-pointer mt-2 bg-slate-800/40 border border-slate-700/50 p-3 rounded-lg">
+                  <div className="relative">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only" 
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                    />
+                    <div className={`block w-12 h-7 rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-slate-600'}`}></div>
+                    <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${formData.isActive ? 'transform translate-x-5' : ''}`}></div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-slate-300">Trạng thái bán hàng</span>
+                    <span className={`text-xs ${formData.isActive ? 'text-green-400' : 'text-slate-500'}`}>
+                      {formData.isActive ? 'Sản phẩm đang được mở bán' : 'Sản phẩm đang tạm ngừng bán'}
+                    </span>
+                  </div>
+                </label>
               </div>
 
               {/* Attributes Section */}
