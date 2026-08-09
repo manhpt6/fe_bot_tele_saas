@@ -17,8 +17,10 @@ const StatCard = ({ title, value, icon: Icon, colorClass }: any) => (
 );
 
 export const DashboardPage = () => {
-  const { data: orders = [] } = useGetOrdersQuery();
-  const { data: accounts = [] } = useGetAccountsQuery();
+  const { data: ordersPage } = useGetOrdersQuery();
+  const { data: accountsPage } = useGetAccountsQuery();
+  const orders = ordersPage?.content || [];
+  const accounts = accountsPage?.content || [];
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];

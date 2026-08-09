@@ -1,0 +1,84 @@
+import { baseApi } from './baseApi';
+import { PageResponse } from '../types/common';
+
+export interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  role: 'ADMIN' | 'STAFF';
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface UserCreateRequest {
+  username: string;
+  password?: string;
+  fullName: string;
+  email?: string;
+  role: 'ADMIN' | 'STAFF';
+}
+
+export interface UserUpdateRequest {
+  fullName: string;
+  email?: string;
+  role: 'ADMIN' | 'STAFF';
+  isActive: boolean;
+  newPassword?: string;
+}
+
+export const userApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getMe: builder.query<User, void>({
+      query: () => '/users/me',
+      providesTags: ['User'],
+    }),
+    getUsers: builder.query<PageResponse<User>, { page: number; size: number }>({
+      query: (params) => ({
+        url: '/users',
+        params,
+      }),
+      providesTags: ['User'],
+    }),
+    createUser: builder.mutation<User, UserCreateRequest>({
+      query: (body) => ({
+        url: '/users',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['User'],
+    }),
+    updateUser: builder.mutation<User, { id: number; data: UserUpdateRequest }>({
+      query: ({ id, data }) => ({
+        url: `/users/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['User'],
+    }),
+    updateMe: builder.mutation<User, UserUpdateRequest>({
+      query: (data) => ({
+        url: '/users/me',
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['User'],
+    }),
+    deleteUser: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User'],
+    }),
+  }),
+});
+
+export const {
+  useGetMeQuery,
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useUpdateMeMutation,
+  useDeleteUserMutation,
+} = userApi;

@@ -29,12 +29,16 @@ export interface Product {
   isActive: boolean;
   deliveryMode: 'AUTO' | 'MANUAL';
   stockCount: number;
+  accountFormat: string;
+  displayType: 'MULTI_LINE' | 'RAW';
+  attributes?: Record<string, string>;
 }
 
 export interface Account {
   id: number;
-  accountData: string;
-  status: 'AVAILABLE' | 'SOLD' | 'ERROR';
+  productId: number;
+  accountData: string[];
+  status: 'AVAILABLE' | 'SOLD' | 'RESERVED';
   soldAt: string | null;
 }
 

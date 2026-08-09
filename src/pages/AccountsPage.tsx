@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation } from '../api/accountApi';
+import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
 import { Users, Upload, Trash2, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -26,8 +26,20 @@ export const AccountsPage = () => {
   const [importExcel, { isLoading: isImporting }] = useImportExcelMutation();
   
   const [activeTab, setActiveTab] = useState<'LIST' | 'IMPORT'>('LIST');
+  const [importMode, setImportMode] = useState<'MANUAL' | 'TEXTAREA' | 'EXCEL'>('MANUAL');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
+  const [manualData, setManualData] = useState<string[]>([]);
+  const [bulkText, setBulkText] = useState<string>('');
+  
+  const [addBulkAccounts, { isLoading: isAddingManual }] = useAddBulkAccountsMutation();
+
+  const selectedProduct = products.find(p => p.id.toString() === selectedProductId);
+  const accountFormatFields = selectedProduct?.accountFormat?.split('|').filter(f => f.trim() !== '') || ['Tài khoản', 'Mật khẩu'];
+  
+  if (manualData.length !== accountFormatFields.length && selectedProductId) {
+    setManualData(new Array(accountFormatFields.length).fill(''));
+  }
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Bạn có chắc muốn xóa account này?')) {
@@ -42,18 +54,58 @@ export const AccountsPage = () => {
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProductId || !file) {
-      toast.error('Vui lòng chọn sản phẩm và file Excel');
+    if (!selectedProductId) {
+      toast.error('Vui lòng chọn sản phẩm');
       return;
     }
     
-    try {
-      const res = await importExcel({ productId: Number(selectedProductId), file }).unwrap();
-      toast.success(`Đã nạp thành công ${res.successCount} account`);
-      setFile(null);
-      setActiveTab('LIST');
-    } catch (err: any) {
-      toast.error(err?.data || 'Lỗi khi nạp account');
+    if (importMode === 'EXCEL') {
+      if (!file) {
+        toast.error('Vui lòng chọn file Excel');
+        return;
+      }
+      try {
+        const res = await importExcel({ productId: Number(selectedProductId), file }).unwrap();
+        toast.success(`Đã nạp thành công ${res.successCount} account`);
+        setFile(null);
+        setActiveTab('LIST');
+      } catch (err: any) {
+        toast.error(err?.data || 'Lỗi khi nạp account');
+      }
+    } else if (importMode === 'TEXTAREA') {
+      if (!bulkText.trim()) {
+        toast.error('Vui lòng nhập dữ liệu');
+        return;
+      }
+      
+      const lines = bulkText.split('\n').filter(line => line.trim() !== '');
+      const accountDataList = lines.map(line => line.split('|').map(s => s.trim()));
+      
+      try {
+        await addBulkAccounts({ 
+          productId: Number(selectedProductId), 
+          accountDataList 
+        }).unwrap();
+        toast.success(`Đã nạp ${accountDataList.length} account thành công`);
+        setBulkText('');
+      } catch (err: any) {
+        toast.error(err?.data || 'Lỗi khi thêm account');
+      }
+    } else {
+      if (manualData.some(d => !d.trim())) {
+        toast.error('Vui lòng điền đầy đủ các trường');
+        return;
+      }
+      try {
+        await addBulkAccounts({ 
+          productId: Number(selectedProductId), 
+          accountDataList: [manualData] 
+        }).unwrap();
+        toast.success('Đã thêm 1 account thành công');
+        setManualData(new Array(accountFormatFields.length).fill(''));
+      } catch (err: any) {
+        toast.error(err?.data || 'Lỗi khi thêm account');
+      }
     }
   };
 
@@ -126,7 +178,9 @@ export const AccountsPage = () => {
                   accounts.slice(0, 100).map((acc) => (
                     <tr key={acc.id} className="border-b border-slate-700/20 hover:bg-slate-800/30 transition-colors">
                       <td className="p-4 text-slate-400">#{acc.id}</td>
-                      <td className="p-4 font-mono text-sm text-blue-300">{acc.accountData.substring(0, 30)}...</td>
+                      <td className="p-4 font-mono text-sm text-blue-300">
+                        <div className="truncate max-w-[200px]">{Array.isArray(acc.accountData) ? acc.accountData.join(' | ') : acc.accountData}</div>
+                      </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                           acc.status === 'AVAILABLE' ? 'bg-green-500/20 text-green-400' :
@@ -182,35 +236,109 @@ export const AccountsPage = () => {
               </select>
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Upload file Excel (.xlsx)</label>
-              <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-800/30">
-                <input 
-                  type="file" 
-                  accept=".xlsx, .xls"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  id="file-upload"
+            {selectedProductId && (
+              <div className="flex space-x-4 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setImportMode('MANUAL')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${importMode === 'MANUAL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                >
+                  Nhập từng Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('TEXTAREA')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${importMode === 'TEXTAREA' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                >
+                  Dán từ Notepad
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImportMode('EXCEL')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${importMode === 'EXCEL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                >
+                  Nạp từ file Excel
+                </button>
+              </div>
+            )}
+
+            {selectedProductId && importMode === 'MANUAL' && (
+              <div className="space-y-4 p-4 border border-slate-700/50 rounded-xl bg-slate-800/30">
+                <p className="text-sm text-slate-400 mb-2">Hệ thống tự động sinh form dựa trên Định dạng của sản phẩm:</p>
+                {accountFormatFields.map((field, idx) => (
+                  <div key={idx}>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">{field}</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={manualData[idx] || ''}
+                      onChange={(e) => {
+                        const newData = [...manualData];
+                        newData[idx] = e.target.value;
+                        setManualData(newData);
+                      }}
+                      placeholder={`Nhập ${field}`}
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedProductId && importMode === 'TEXTAREA' && (
+              <div className="space-y-4 p-4 border border-slate-700/50 rounded-xl bg-slate-800/30">
+                <p className="text-sm text-slate-400 mb-2">Dán danh sách tài khoản (Mỗi tài khoản 1 dòng, ngăn cách các trường bởi dấu <code className="text-blue-400">|</code>)</p>
+                <div className="font-mono text-xs bg-slate-900/50 p-3 rounded-lg border border-slate-700 mb-2">
+                  <div className="text-slate-500 mb-1">Cấu trúc chuẩn:</div>
+                  <div className="text-green-400">{accountFormatFields.join('|')}</div>
+                </div>
+                <textarea
+                  rows={8}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm leading-relaxed"
+                  placeholder={`acc1|pass1|2fa\nacc2|pass2|2fa`}
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
                   required
                 />
-                <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
-                  <Upload size={32} className="text-slate-400 mb-3" />
-                  <span className="text-slate-300 font-medium">
-                    {file ? file.name : 'Nhấn để chọn file Excel'}
-                  </span>
-                  <span className="text-slate-500 text-sm mt-1">Cột A: Dữ liệu tài khoản (Email|Pass...)</span>
-                </label>
               </div>
-            </div>
+            )}
 
-            <button 
-              type="submit" 
-              disabled={isImporting}
-              className="w-full btn btn-primary py-3 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-lg disabled:opacity-70"
-            >
-              {isImporting ? <span className="animate-spin text-xl">⭮</span> : <Upload size={18} />}
-              <span>{isImporting ? 'Đang nạp dữ liệu...' : 'Tiến hành Nạp'}</span>
-            </button>
+            {selectedProductId && importMode === 'EXCEL' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Upload file Excel (.xlsx)</label>
+                <div className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-slate-800/30">
+                  <input 
+                    type="file" 
+                    accept=".xlsx, .xls"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="file-upload"
+                    required={importMode === 'EXCEL'}
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                    <Upload size={32} className="text-slate-400 mb-3" />
+                    <span className="text-slate-300 font-medium">
+                      {file ? file.name : 'Nhấn để chọn file Excel'}
+                    </span>
+                    <span className="text-slate-500 text-sm mt-2 font-mono">
+                      Cột A: {accountFormatFields[0] || 'Dữ liệu'} <br/>
+                      {accountFormatFields.length > 1 && accountFormatFields.slice(1).map((f, i) => `Cột ${String.fromCharCode(66 + i)}: ${f}`).join(', ')}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {selectedProductId && (
+              <button 
+                type="submit" 
+                disabled={isImporting || isAddingManual}
+                className="w-full btn btn-primary py-3 flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-lg disabled:opacity-70"
+              >
+                {(isImporting || isAddingManual) ? <span className="animate-spin text-xl">⭮</span> : <Upload size={18} />}
+                <span>{(isImporting || isAddingManual) ? 'Đang nạp dữ liệu...' : 'Tiến hành Nạp'}</span>
+              </button>
+            )}
           </form>
         </div>
       )}

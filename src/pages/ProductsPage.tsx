@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Package, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
+import { PlusCircle, MinusCircle } from 'lucide-react';
 
 export const ProductsPage = () => {
   const [page, setPage] = useState(0);
@@ -18,13 +19,16 @@ export const ProductsPage = () => {
   });
   
   const products = pageResponse?.content || [];
-  const { data: categories = [] } = useGetCategoriesQuery({});
+  const { data: categoriesPage } = useGetCategoriesQuery({ size: 100 });
+  const categories = categoriesPage?.content || [];
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [attributeList, setAttributeList] = useState<{key: string, value: string}[]>([]);
+  const [formatFieldsList, setFormatFieldsList] = useState<string[]>(['Tài khoản', 'Mật khẩu']);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -32,10 +36,13 @@ export const ProductsPage = () => {
     categoryId: '',
     description: '',
     deliveryMode: 'AUTO',
+    accountFormat: 'Tài khoản|Mật khẩu',
+    displayType: 'MULTI_LINE',
     isActive: true
   });
 
   const handleOpenModal = (product?: any) => {
+    console.log("Opening modal for product:", product);
     if (product) {
       setEditingId(product.id);
       setFormData({
@@ -45,8 +52,18 @@ export const ProductsPage = () => {
         categoryId: product.categoryId?.toString() || (categories.length > 0 ? categories[0].id.toString() : ''),
         description: product.description || '',
         deliveryMode: product.deliveryMode,
+        accountFormat: product.accountFormat || 'Tài khoản|Mật khẩu',
+        displayType: product.displayType || 'MULTI_LINE',
         isActive: product.isActive
       });
+      
+      const formatString = product.accountFormat || 'Tài khoản|Mật khẩu';
+      setFormatFieldsList(formatString.split('|').filter((f: string) => f.trim() !== ''));
+      
+      const attrs = product.attributes 
+        ? Object.entries(product.attributes).map(([k, v]) => ({ key: k, value: String(v) })) 
+        : [];
+      setAttributeList(attrs);
     } else {
       setEditingId(null);
       setFormData({ 
@@ -56,8 +73,12 @@ export const ProductsPage = () => {
         categoryId: categories.length > 0 ? categories[0].id.toString() : '',
         description: '', 
         deliveryMode: 'AUTO', 
+        accountFormat: 'Tài khoản|Mật khẩu',
+        displayType: 'MULTI_LINE',
         isActive: true 
       });
+      setFormatFieldsList(['Tài khoản', 'Mật khẩu']);
+      setAttributeList([]);
     }
     setIsModalOpen(true);
   };
@@ -69,7 +90,18 @@ export const ProductsPage = () => {
       return;
     }
     try {
-      const payload = { ...formData, categoryId: Number(formData.categoryId) };
+      const attributesRecord = attributeList.reduce((acc, curr) => {
+        if (curr.key.trim() && curr.value.trim()) {
+            acc[curr.key.trim()] = curr.value.trim();
+        }
+        return acc;
+      }, {} as Record<string, string>);
+      const payload = { 
+        ...formData, 
+        categoryId: Number(formData.categoryId), 
+        attributes: attributesRecord,
+        accountFormat: formatFieldsList.filter(f => f.trim() !== '').join('|') || 'Tài khoản'
+      };
       if (editingId) {
         await updateProduct({ id: editingId, data: payload }).unwrap();
         toast.success('Đã cập nhật sản phẩm!');
@@ -92,6 +124,36 @@ export const ProductsPage = () => {
         toast.error('Lỗi khi xóa sản phẩm');
       }
     }
+  };
+
+  const handleAddAttribute = () => {
+    setAttributeList([...attributeList, { key: '', value: '' }]);
+  };
+
+  const handleRemoveAttribute = (index: number) => {
+    setAttributeList(attributeList.filter((_, i) => i !== index));
+  };
+
+  const handleAttributeChange = (index: number, field: 'key' | 'value', value: string) => {
+    const newList = [...attributeList];
+    newList[index][field] = value;
+    setAttributeList(newList);
+  };
+
+  const handleAddFormatField = () => {
+    setFormatFieldsList([...formatFieldsList, '']);
+  };
+
+  const handleRemoveFormatField = (index: number) => {
+    if (formatFieldsList.length > 1) {
+      setFormatFieldsList(formatFieldsList.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleFormatFieldChange = (index: number, value: string) => {
+    const newList = [...formatFieldsList];
+    newList[index] = value;
+    setFormatFieldsList(newList);
   };
 
   return (
@@ -208,8 +270,8 @@ export const ProductsPage = () => {
 
       {/* Modal Thêm Sản Phẩm */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="glass w-full max-w-md p-6 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-lg p-6 rounded-2xl border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">{editingId ? 'Sửa Sản Phẩm' : 'Thêm Sản Phẩm'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white">
@@ -246,7 +308,88 @@ export const ProductsPage = () => {
                   <option value="MANUAL">Thủ công (Admin tự nhắn tin)</option>
                 </select>
               </div>
-              <button type="submit" disabled={isCreating} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg mt-4 disabled:opacity-50">
+              
+              <div className="pt-2 border-t border-slate-700/50">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-gray-300">Định dạng Kho (Cấu trúc Tài khoản)</label>
+                  <button type="button" onClick={handleAddFormatField} className="text-blue-400 hover:text-blue-300 flex items-center text-xs space-x-1">
+                    <PlusCircle size={14} />
+                    <span>Thêm trường</span>
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {formatFieldsList.map((field, idx) => (
+                    <div key={idx} className="flex space-x-2 items-center">
+                      <div className="bg-slate-700/50 text-slate-400 px-3 py-1.5 rounded-lg text-sm font-mono shrink-0">
+                        Cột {String.fromCharCode(65 + idx)}
+                      </div>
+                      <input
+                        required
+                        type="text"
+                        placeholder="Tên trường (vd: Tài khoản, Mật khẩu...)"
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                        value={field}
+                        onChange={(e) => handleFormatFieldChange(idx, e.target.value)}
+                      />
+                      {formatFieldsList.length > 1 && (
+                        <button type="button" onClick={() => handleRemoveFormatField(idx)} className="p-1.5 text-slate-400 hover:text-red-400 transition-colors">
+                          <MinusCircle size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Kiểu trả cho khách</label>
+                <select className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" value={formData.displayType} onChange={(e) => setFormData({...formData, displayType: e.target.value})}>
+                  <option value="MULTI_LINE">Chi tiết nhiều dòng (Tài khoản: abc...)</option>
+                  <option value="RAW">Một dòng thô (abc|123...)</option>
+                </select>
+              </div>
+
+              {/* Attributes Section */}
+              <div className="pt-2 border-t border-slate-700/50">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-gray-300">Thuộc tính tuỳ chỉnh (Tuỳ chọn)</label>
+                  <button type="button" onClick={handleAddAttribute} className="text-blue-400 hover:text-blue-300 flex items-center text-xs space-x-1">
+                    <PlusCircle size={14} />
+                    <span>Thêm thuộc tính</span>
+                  </button>
+                </div>
+                
+                {attributeList.length === 0 ? (
+                  <div className="text-xs text-slate-500 italic">Chưa có thuộc tính nào. Có thể thêm Bảo hành, Định dạng...</div>
+                ) : (
+                  <div className="space-y-2">
+                    {attributeList.map((attr, idx) => (
+                      <div key={idx} className="flex space-x-2 items-start">
+                        <input
+                          type="text"
+                          placeholder="Tên (vd: Bảo hành)"
+                          className="flex-1 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                          value={attr.key}
+                          onChange={(e) => handleAttributeChange(idx, 'key', e.target.value)}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Giá trị (vd: 1 đổi 1)"
+                          className="flex-1 bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                          value={attr.value}
+                          onChange={(e) => handleAttributeChange(idx, 'value', e.target.value)}
+                        />
+                        <button type="button" onClick={() => handleRemoveAttribute(idx)} className="p-1.5 text-slate-400 hover:text-red-400 transition-colors mt-0.5">
+                          <MinusCircle size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" disabled={isCreating} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg mt-6 disabled:opacity-50">
                 {isCreating ? 'Đang lưu...' : 'Lưu Sản Phẩm'}
               </button>
             </form>
