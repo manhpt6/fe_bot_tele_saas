@@ -35,6 +35,7 @@ export const AccountsPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [manualData, setManualData] = useState<string[]>([]);
   const [bulkText, setBulkText] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
   
   const [viewAccount, setViewAccount] = useState<any | null>(null);
 
@@ -46,6 +47,38 @@ export const AccountsPage = () => {
   if (manualData.length !== accountFormatFields.length && selectedProductId) {
     setManualData(new Array(accountFormatFields.length).fill(''));
   }
+
+
+  const handleFileUploadTXT = (fileObj: File) => {
+    if (!fileObj) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result;
+      if (typeof text === 'string') {
+        setBulkText(prev => prev ? prev + '\n' + text : text);
+        toast.success('Đã đọc file thành công!');
+      }
+    };
+    reader.readAsText(fileObj);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUploadTXT(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Bạn có chắc muốn xóa account này?')) {
@@ -333,19 +366,47 @@ export const AccountsPage = () => {
 
             {selectedProductId && importMode === 'TEXTAREA' && (
               <div className="space-y-4 p-4 border border-slate-700/50 rounded-xl bg-slate-800/30">
-                <p className="text-sm text-slate-400 mb-2">Dán danh sách tài khoản (Mỗi tài khoản 1 dòng, ngăn cách các trường bởi dấu <code className="text-blue-400">|</code>)</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                  <p className="text-sm text-slate-400">Dán danh sách tài khoản (Mỗi tài khoản 1 dòng, ngăn cách các trường bởi dấu <code className="text-blue-400">|</code>)</p>
+                  <label className="cursor-pointer text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1 transition-colors shrink-0">
+                    <Upload size={14} />
+                    <span>Chọn file .txt</span>
+                    <input 
+                      type="file" 
+                      accept=".txt" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleFileUploadTXT(e.target.files[0]);
+                        e.target.value = '';
+                      }} 
+                    />
+                  </label>
+                </div>
                 <div className="font-mono text-xs bg-slate-900/50 p-3 rounded-lg border border-slate-700 mb-2">
                   <div className="text-slate-500 mb-1">Cấu trúc chuẩn:</div>
                   <div className="text-green-400">{accountFormatFields.join('|')}</div>
                 </div>
-                <textarea
-                  rows={8}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm leading-relaxed"
-                  placeholder={`acc1|pass1|2fa\nacc2|pass2|2fa`}
-                  value={bulkText}
-                  onChange={(e) => setBulkText(e.target.value)}
-                  required
-                />
+                <div 
+                  className={`relative transition-all duration-200 rounded-lg ${isDragging ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900' : ''}`}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                >
+                  {isDragging && (
+                    <div className="absolute inset-0 bg-blue-500/20 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-400 z-10 pointer-events-none">
+                      <Upload size={32} className="text-blue-400 mb-2 animate-bounce" />
+                      <span className="text-blue-300 font-medium">Thả file .txt vào đây</span>
+                    </div>
+                  )}
+                  <textarea
+                    rows={8}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm leading-relaxed"
+                    placeholder={`acc1|pass1|2fa\nacc2|pass2|2fa\n\n(Hoặc kéo thả file .txt trực tiếp vào đây)`}
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             )}
 
