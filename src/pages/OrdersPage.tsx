@@ -14,7 +14,7 @@ export const OrdersPage = () => {
     page,
     size: 10,
     keyword: debouncedSearchTerm
-  });
+  }, { pollingInterval: 5000 });
   
   const orders = pageResponse?.content || [];
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();

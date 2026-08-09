@@ -25,7 +25,7 @@ export const accountApi = baseApi.injectEndpoints({
       },
       providesTags: ['Account'],
     }),
-    addBulkAccounts: builder.mutation<any, { productId: number; rawData: string }>({
+    addBulkAccounts: builder.mutation<any, { productId: number; accountDataList: string[][] }>({
       query: (body) => ({
         url: '/accounts/bulk',
         method: 'POST',

@@ -11,6 +11,8 @@ import { AccountsPage } from './pages/AccountsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BroadcastPage } from './pages/BroadcastPage';
+import { AdminsPage } from './pages/AdminsPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/broadcast" element={<BroadcastPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/admins" element={<AdminsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Route>
       </Routes>
