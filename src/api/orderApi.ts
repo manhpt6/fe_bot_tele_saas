@@ -1,5 +1,5 @@
 import { baseApi } from './baseApi';
-import { OrderTable } from '../types';
+import { OrderTable, OrderDetail } from '../types';
 import { PageResponse } from '../types/pagination';
 
 export interface OrderQueryParams {
@@ -23,6 +23,10 @@ export const orderApi = baseApi.injectEndpoints({
       },
       providesTags: ['Order'],
     }),
+    getOrderById: builder.query<OrderDetail, number>({
+      query: (id) => `/admin/orders/${id}`,
+      providesTags: ['Order'],
+    }),
     confirmOrder: builder.mutation<any, string>({
       query: (orderCode) => ({
         url: `/admin/orders/${orderCode}/confirm`,
@@ -33,4 +37,4 @@ export const orderApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetOrdersQuery, useConfirmOrderMutation } = orderApi;
+export const { useGetOrdersQuery, useGetOrderByIdQuery, useConfirmOrderMutation } = orderApi;

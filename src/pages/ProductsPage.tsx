@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery } from '../api/categoryApi';
-import { Plus, Edit2, Trash2, Package, X, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -26,6 +26,7 @@ export const ProductsPage = () => {
   const [updateProduct] = useUpdateProductMutation();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewProductInfo, setViewProductInfo] = useState<any | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [attributeList, setAttributeList] = useState<{key: string, value: string}[]>([]);
   const [formatFieldsList, setFormatFieldsList] = useState<string[]>(['Tài khoản', 'Mật khẩu']);
@@ -238,8 +239,16 @@ export const ProductsPage = () => {
                     </td>
                     <td className="p-4 text-right space-x-2">
                       <button 
-                        onClick={() => handleOpenModal(product)}
+                        onClick={() => setViewProductInfo(product)}
                         className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleOpenModal(product)}
+                        className="p-2 text-slate-400 hover:text-orange-400 hover:bg-orange-400/10 rounded transition-colors"
+                        title="Sửa"
                       >
                         <Edit2 size={16} />
                       </button>
@@ -393,6 +402,83 @@ export const ProductsPage = () => {
                 {isCreating ? 'Đang lưu...' : 'Lưu Sản Phẩm'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xem Chi Tiết Sản Phẩm */}
+      {viewProductInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-2xl rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Box size={24} className="text-blue-400" />
+                Chi Tiết Sản Phẩm
+              </h2>
+              <button onClick={() => setViewProductInfo(null)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-slate-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm">
+                  <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
+                    <Package size={18} /> Thông Tin Chung
+                  </div>
+                  <p><span className="text-slate-400">Tên SP:</span> <span className="text-white font-medium">{viewProductInfo.name}</span></p>
+                  <p><span className="text-slate-400">Mã (Slug):</span> <span className="text-white">{viewProductInfo.slug}</span></p>
+                  <p><span className="text-slate-400">Giá:</span> <span className="text-green-400 font-bold">{viewProductInfo.price.toLocaleString()}đ</span></p>
+                  <p><span className="text-slate-400">Danh mục ID:</span> <span className="text-white">{viewProductInfo.categoryId}</span></p>
+                  <p>
+                    <span className="text-slate-400">Trạng thái:</span> 
+                    <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${viewProductInfo.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {viewProductInfo.isActive ? 'Đang bán' : 'Đã ẩn'}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm">
+                  <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
+                    <Settings size={18} /> Kho & Giao Hàng
+                  </div>
+                  <p><span className="text-slate-400">Tồn kho:</span> <span className="text-white font-bold">{viewProductInfo.stockCount}</span></p>
+                  <p><span className="text-slate-400">Kiểu giao:</span> <span className="text-white">{viewProductInfo.deliveryMode === 'AUTO' ? 'Tự động' : 'Thủ công'}</span></p>
+                  <p><span className="text-slate-400">Kiểu trả KH:</span> <span className="text-white">{viewProductInfo.displayType === 'MULTI_LINE' ? 'Chi tiết nhiều dòng' : 'Một dòng thô'}</span></p>
+                  
+                  <div className="pt-2 mt-2 border-t border-slate-700/30">
+                    <span className="text-slate-400 mb-1 block">Cấu trúc lưu kho:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(viewProductInfo.accountFormat || 'Tài khoản|Mật khẩu').split('|').map((col: string, idx: number) => (
+                        <span key={idx} className="bg-slate-700 text-blue-300 px-2 py-0.5 rounded text-xs font-mono border border-slate-600">
+                          {col}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {viewProductInfo.attributes && Object.keys(viewProductInfo.attributes).length > 0 && (
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
+                    <Tag size={18} /> Thuộc tính tuỳ chỉnh
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {Object.entries(viewProductInfo.attributes).map(([key, val]) => (
+                      <div key={key} className="flex bg-slate-900/50 rounded-lg overflow-hidden border border-slate-700/50">
+                        <div className="bg-slate-800 px-3 py-2 text-slate-400 font-medium whitespace-nowrap min-w-[100px]">
+                          {key}
+                        </div>
+                        <div className="px-3 py-2 text-white flex-1 break-words">
+                          {String(val)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

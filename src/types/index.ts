@@ -40,6 +40,34 @@ export interface Account {
   accountData: string[];
   status: 'AVAILABLE' | 'SOLD' | 'RESERVED';
   soldAt: string | null;
+  orderCode?: string;
+}
+
+export interface OrderItem {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  deliveredAccounts: string[][];
+}
+
+export interface OrderDetail {
+  id: number;
+  orderCode: string;
+  totalAmount: number;
+  status: 'PENDING' | 'PAID' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
+  deliveryMode: 'AUTO' | 'MANUAL';
+  paymentMethod: 'WALLET' | 'BANK_TRANSFER';
+  adminNote?: string;
+  createdAt: string;
+  customer: {
+    telegramId: number;
+    username: string;
+    firstName: string;
+  };
+  items: OrderItem[];
 }
 
 export interface OrderTable {

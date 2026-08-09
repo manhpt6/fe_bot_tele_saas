@@ -1,5 +1,5 @@
-import { useGetOrdersQuery, useConfirmOrderMutation } from '../api/orderApi';
-import { ShoppingCart, CheckCircle, Clock, XCircle, Search, Filter } from 'lucide-react';
+import { useGetOrdersQuery, useConfirmOrderMutation, useGetOrderByIdQuery } from '../api/orderApi';
+import { ShoppingCart, CheckCircle, Clock, XCircle, Search, Eye, X, Package, User, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { Pagination } from '../components/ui/Pagination';
@@ -18,6 +18,12 @@ export const OrdersPage = () => {
   
   const orders = pageResponse?.content || [];
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();
+
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  
+  const { data: orderDetail, isLoading: isDetailLoading } = useGetOrderByIdQuery(selectedOrderId as number, {
+    skip: selectedOrderId === null
+  });
 
   const handleConfirm = async (orderCode: string) => {
     if (window.confirm(`Xác nhận đã nhận tiền cho đơn hàng ${orderCode}? Hệ thống sẽ tự động giao hàng (nếu là AUTO).`)) {
@@ -112,15 +118,27 @@ export const OrdersPage = () => {
                       {new Date(order.createdAt).toLocaleString()}
                     </td>
                     <td className="p-4 text-right">
-                      {order.status === 'PENDING' && order.paymentMethod === 'BANK_TRANSFER' && (
+                      <div className="flex items-center justify-end space-x-2">
                         <button 
-                          onClick={() => handleConfirm(order.orderCode)}
-                          disabled={isConfirming}
-                          className="btn bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-3 py-1 text-sm disabled:opacity-50"
+                          onClick={() => setSelectedOrderId(order.id)}
+                          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                          title="Xem chi tiết"
                         >
-                          Duyệt đơn
+                          <Eye size={18} />
                         </button>
-                      )}
+                        {order.status === 'PENDING' && order.paymentMethod === 'BANK_TRANSFER' && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConfirm(order.orderCode);
+                            }}
+                            disabled={isConfirming}
+                            className="btn bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-3 py-1 text-sm disabled:opacity-50"
+                          >
+                            Duyệt đơn
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -139,6 +157,115 @@ export const OrdersPage = () => {
           />
         )}
       </div>
+
+      {/* Chi tiết đơn hàng Modal */}
+      {selectedOrderId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-3xl rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <ShoppingCart size={24} className="text-blue-400" />
+                Chi Tiết Đơn Hàng {orderDetail ? `#${orderDetail.orderCode}` : ''}
+              </h2>
+              <button onClick={() => setSelectedOrderId(null)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-slate-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {isDetailLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+              ) : orderDetail ? (
+                <div className="space-y-6">
+                  {/* Thông tin chung */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
+                        <User size={18} /> Khách Hàng
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-slate-400">Tên:</span> <span className="text-white font-medium">{orderDetail.customer.firstName}</span></p>
+                        <p><span className="text-slate-400">Username:</span> <span className="text-blue-400">@{orderDetail.customer.username}</span></p>
+                        <p><span className="text-slate-400">Telegram ID:</span> <span className="text-white font-mono">{orderDetail.customer.telegramId}</span></p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
+                        <Wallet size={18} /> Thanh Toán
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-slate-400">Tổng tiền:</span> <span className="text-green-400 font-bold text-base">{orderDetail.totalAmount.toLocaleString()}đ</span></p>
+                        <p><span className="text-slate-400">Phương thức:</span> <span className="text-white">{orderDetail.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản' : 'Ví'}</span></p>
+                        <p>
+                          <span className="text-slate-400 mr-2">Trạng thái:</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            orderDetail.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                            orderDetail.status === 'PAID' ? 'bg-blue-500/20 text-blue-400' :
+                            orderDetail.status === 'PENDING' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {orderDetail.status}
+                          </span>
+                        </p>
+                        <p><span className="text-slate-400">Giao hàng:</span> <span className="text-white">{orderDetail.deliveryMode}</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sản phẩm & Tài khoản đã giao */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                      <Package size={20} className="text-blue-400" /> Mặt Hàng Đã Mua
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {orderDetail.items.map((item) => (
+                        <div key={item.id} className="bg-slate-800/60 rounded-xl border border-slate-700 overflow-hidden">
+                          <div className="p-4 bg-slate-800/80 border-b border-slate-700 flex justify-between items-center">
+                            <div>
+                              <div className="font-bold text-white text-lg">{item.productName}</div>
+                              <div className="text-sm text-slate-400">Số lượng: <span className="text-white font-medium">{item.quantity}</span> x {item.unitPrice.toLocaleString()}đ</div>
+                            </div>
+                            <div className="text-green-400 font-bold text-lg">
+                              {item.subtotal.toLocaleString()}đ
+                            </div>
+                          </div>
+                          
+                          {/* Tài khoản chi tiết */}
+                          {item.deliveredAccounts && item.deliveredAccounts.length > 0 ? (
+                            <div className="p-4">
+                              <p className="text-sm font-semibold text-slate-300 mb-2">Tài khoản đã xuất kho:</p>
+                              <div className="space-y-2">
+                                {item.deliveredAccounts.map((accInfo, idx) => (
+                                  <div key={idx} className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 font-mono text-sm">
+                                    <div className="text-blue-400 mb-1">#{idx + 1}</div>
+                                    <div className="text-slate-300 break-words whitespace-pre-wrap leading-relaxed">
+                                      {accInfo.join(' | ')}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-4 text-slate-500 text-sm italic text-center">
+                              {orderDetail.status === 'PENDING' ? 'Chưa giao hàng (chờ thanh toán)' : 'Đơn hàng này không có tài khoản tự động nào được giao.'}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-slate-400 py-8">Không tìm thấy thông tin đơn hàng</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

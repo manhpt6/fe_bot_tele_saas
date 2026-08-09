@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
-import { Users, Upload, Trash2, Search, Filter } from 'lucide-react';
+import { Users, Upload, Trash2, Search, Filter, Eye, X, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -32,6 +32,8 @@ export const AccountsPage = () => {
   const [manualData, setManualData] = useState<string[]>([]);
   const [bulkText, setBulkText] = useState<string>('');
   
+  const [viewAccount, setViewAccount] = useState<any | null>(null);
+
   const [addBulkAccounts, { isLoading: isAddingManual }] = useAddBulkAccountsMutation();
 
   const selectedProduct = products.find(p => p.id.toString() === selectedProductId);
@@ -177,7 +179,7 @@ export const AccountsPage = () => {
                 ) : (
                   accounts.slice(0, 100).map((acc) => (
                     <tr key={acc.id} className="border-b border-slate-700/20 hover:bg-slate-800/30 transition-colors">
-                      <td className="p-4 text-slate-400">#{acc.id}</td>
+                      <td className="p-4 text-slate-400 font-mono">#{acc.id}</td>
                       <td className="p-4 font-mono text-sm text-blue-300">
                         <div className="truncate max-w-[200px]">{Array.isArray(acc.accountData) ? acc.accountData.join(' | ') : acc.accountData}</div>
                       </td>
@@ -193,10 +195,18 @@ export const AccountsPage = () => {
                       <td className="p-4 text-slate-400 text-sm">
                         {acc.soldAt ? new Date(acc.soldAt).toLocaleString() : '-'}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right space-x-2">
+                        <button 
+                          onClick={() => setViewAccount(acc)}
+                          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={16} />
+                        </button>
                         <button 
                           onClick={() => handleDelete(acc.id)}
                           className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                          title="Xóa"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -340,6 +350,84 @@ export const AccountsPage = () => {
               </button>
             )}
           </form>
+        </div>
+      )}
+
+      {/* Modal Chi tiết Account */}
+      {viewAccount && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/50">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <ShieldCheck size={24} className="text-blue-400" />
+                Chi Tiết Account #{viewAccount.id}
+              </h2>
+              <button onClick={() => setViewAccount(null)} className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-slate-700 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-3 text-sm">
+                <p>
+                  <span className="text-slate-400 inline-block w-24">Sản phẩm:</span> 
+                  <span className="text-white font-medium">
+                    {products.find(p => p.id === viewAccount.productId)?.name || `ID: ${viewAccount.productId}`}
+                  </span>
+                </p>
+                <p>
+                  <span className="text-slate-400 inline-block w-24">Trạng thái:</span> 
+                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                    viewAccount.status === 'AVAILABLE' ? 'bg-green-500/20 text-green-400' :
+                    viewAccount.status === 'SOLD' ? 'bg-slate-500/20 text-slate-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {viewAccount.status}
+                  </span>
+                </p>
+                {viewAccount.status === 'SOLD' && (
+                  <>
+                    <p>
+                      <span className="text-slate-400 inline-block w-24">Mã đơn:</span> 
+                      <span className="text-blue-400 font-mono font-medium">{viewAccount.orderCode || 'Không rõ'}</span>
+                    </p>
+                    <p>
+                      <span className="text-slate-400 inline-block w-24">Ngày bán:</span> 
+                      <span className="text-white">{viewAccount.soldAt ? new Date(viewAccount.soldAt).toLocaleString() : '-'}</span>
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
+                <div className="bg-slate-800/80 px-4 py-2 border-b border-slate-700/50 text-sm font-semibold text-slate-300">
+                  Dữ liệu tài khoản
+                </div>
+                <div className="p-4 space-y-3 font-mono text-sm">
+                  {(() => {
+                    const productFormat = products.find(p => p.id === viewAccount.productId)?.accountFormat;
+                    const formatFields = productFormat ? productFormat.split('|') : [];
+                    const dataArray = Array.isArray(viewAccount.accountData) ? viewAccount.accountData : [viewAccount.accountData];
+                    
+                    return (
+                      <>
+                        {dataArray.map((dataItem: string, idx: number) => (
+                          <div key={idx} className="flex flex-col">
+                            <span className="text-slate-500 text-xs mb-1">
+                              {formatFields[idx] || `Trường ${idx + 1}`}
+                            </span>
+                            <span className="text-blue-300 bg-slate-800/50 px-3 py-2 rounded-lg border border-slate-700/50 break-words">
+                              {dataItem}
+                            </span>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
