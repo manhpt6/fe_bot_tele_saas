@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
 import { Users, Upload, Trash2, Search, Filter, Eye, X, ShieldCheck } from 'lucide-react';
@@ -44,9 +44,12 @@ export const AccountsPage = () => {
   const selectedProduct = products.find(p => p.id.toString() === selectedProductId);
   const accountFormatFields = selectedProduct?.accountFormat?.split('|').filter(f => f.trim() !== '') || ['Tài khoản', 'Mật khẩu'];
   
-  if (manualData.length !== accountFormatFields.length && selectedProductId) {
-    setManualData(new Array(accountFormatFields.length).fill(''));
-  }
+  useEffect(() => {
+    if (selectedProductId && manualData.length !== accountFormatFields.length) {
+      setManualData(new Array(accountFormatFields.length).fill(''));
+    }
+  }, [selectedProductId, accountFormatFields.length, manualData.length]);
+
 
 
   const handleFileUploadTXT = (fileObj: File) => {
