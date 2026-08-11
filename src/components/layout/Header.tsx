@@ -46,7 +46,7 @@ export const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNotificationClick = async (id: number, type: string, referenceId: string) => {
+  const handleNotificationClick = async (id: number, type: string) => {
     await markAsRead(id);
     setShowDropdown(false);
     if (type === 'ORDER') {
@@ -105,7 +105,7 @@ export const Header = () => {
                   notifications.map(notif => (
                     <div 
                       key={notif.id}
-                      onClick={() => handleNotificationClick(notif.id, notif.type, notif.referenceId)}
+                      onClick={() => handleNotificationClick(notif.id, notif.type)}
                       className={`p-3 border-b border-slate-800/50 cursor-pointer hover:bg-slate-800 transition-colors ${!notif.read ? 'bg-blue-500/5' : ''}`}
                     >
                       <div className="flex justify-between items-start mb-1">
