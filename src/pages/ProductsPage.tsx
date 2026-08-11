@@ -30,7 +30,17 @@ export const ProductsPage = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [attributeList, setAttributeList] = useState<{key: string, value: string}[]>([]);
   const [formatFieldsList, setFormatFieldsList] = useState<string[]>(['Tài khoản', 'Mật khẩu']);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    slug: string;
+    price: number;
+    categoryId: string;
+    description: string;
+    deliveryMode: 'AUTO' | 'MANUAL';
+    accountFormat: string;
+    displayType: 'MULTI_LINE' | 'RAW';
+    isActive: boolean;
+  }>({
     name: '',
     slug: '',
     price: 0,
@@ -318,7 +328,7 @@ export const ProductsPage = () => {
               </div>
               <div>
                 <label className="block text-sm text-gray-300 mb-1">Loại Giao Hàng</label>
-                <select className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" value={formData.deliveryMode} onChange={(e) => setFormData({...formData, deliveryMode: e.target.value})}>
+                <select className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" value={formData.deliveryMode} onChange={(e) => setFormData({...formData, deliveryMode: e.target.value as 'AUTO' | 'MANUAL'})}>
                   <option value="AUTO">Tự động (Giao tài khoản trong kho)</option>
                   <option value="MANUAL">Thủ công (Admin tự nhắn tin)</option>
                 </select>
@@ -359,7 +369,7 @@ export const ProductsPage = () => {
               
               <div>
                 <label className="block text-sm text-gray-300 mb-1">Kiểu trả cho khách</label>
-                <select className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" value={formData.displayType} onChange={(e) => setFormData({...formData, displayType: e.target.value})}>
+                <select className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500" value={formData.displayType} onChange={(e) => setFormData({...formData, displayType: e.target.value as 'MULTI_LINE' | 'RAW'})}>
                   <option value="MULTI_LINE">Chi tiết nhiều dòng (Tài khoản: abc...)</option>
                   <option value="RAW">Một dòng thô (abc|123...)</option>
                 </select>

@@ -1,5 +1,5 @@
 import { baseApi } from './baseApi';
-import { PageResponse } from '../types/common';
+import { PageResponse } from '../types/pagination';
 
 export interface User {
   id: number;
@@ -8,6 +8,7 @@ export interface User {
   email: string;
   role: 'ADMIN' | 'STAFF';
   isActive: boolean;
+  telegramChatId?: string;
   createdAt: string;
 }
 
@@ -25,6 +26,7 @@ export interface UserUpdateRequest {
   role: 'ADMIN' | 'STAFF';
   isActive: boolean;
   newPassword?: string;
+  telegramChatId?: string;
 }
 
 export interface ChangePasswordRequest {
