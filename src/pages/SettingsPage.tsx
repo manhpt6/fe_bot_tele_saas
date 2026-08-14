@@ -73,7 +73,7 @@ export const SettingsPage = () => {
       .catch(err => console.error("Error fetching banks:", err));
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -82,7 +82,6 @@ export const SettingsPage = () => {
     try {
       await createConfig({
         ...formData,
-        webhookProvider: 'SEPAY',
         bankFeeAmount: Number(formData.bankFeeAmount) || 0,
         id: defaultConfig?.id,
         isDefault: true
