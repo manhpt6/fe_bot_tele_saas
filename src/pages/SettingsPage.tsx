@@ -15,6 +15,7 @@ export const SettingsPage = () => {
     bankName: defaultConfig?.bankName || 'ACB',
     accountNumber: defaultConfig?.accountNumber || '',
     accountHolder: defaultConfig?.accountHolder || '',
+    webhookProvider: defaultConfig?.webhookProvider || 'SEPAY',
     webhookApiKey: defaultConfig?.webhookApiKey || '',
     bankFeeType: defaultConfig?.bankFeeType || 'FIXED',
     bankFeeAmount: defaultConfig?.bankFeeAmount !== undefined ? defaultConfig.bankFeeAmount : 0,
@@ -53,6 +54,7 @@ export const SettingsPage = () => {
         bankName: defaultConfig.bankName,
         accountNumber: defaultConfig.accountNumber,
         accountHolder: defaultConfig.accountHolder,
+        webhookProvider: defaultConfig.webhookProvider || 'SEPAY',
         webhookApiKey: defaultConfig.webhookApiKey || '',
         bankFeeType: defaultConfig.bankFeeType || 'FIXED',
         bankFeeAmount: defaultConfig.bankFeeAmount !== undefined ? defaultConfig.bankFeeAmount : 0,
@@ -80,6 +82,7 @@ export const SettingsPage = () => {
     try {
       await createConfig({
         ...formData,
+        webhookProvider: 'SEPAY',
         bankFeeAmount: Number(formData.bankFeeAmount) || 0,
         id: defaultConfig?.id,
         isDefault: true
@@ -247,26 +250,50 @@ export const SettingsPage = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Webhook API Key (Tùy chọn)</label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    name="webhookApiKey"
-                    value={formData.webhookApiKey}
-                    onChange={handleChange}
-                    placeholder="Mật khẩu bí mật để nhận Webhook từ ngân hàng"
-                    className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
-                  >
-                    {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+              <div className="pt-2 border-t border-slate-700/50">
+                <label className="block text-sm font-medium text-slate-300 mb-1">Cổng thanh toán tự động (Webhook)</label>
+                <select
+                  name="webhookProvider"
+                  value={formData.webhookProvider}
+                  onChange={handleChange}
+                  className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer mb-3"
+                >
+                  <option value="NONE">Tắt (Admin tự xác nhận đơn thủ công)</option>
+                  <option value="SEPAY">SePay (sepay.vn) - Tự động đối soát & giao hàng</option>
+                </select>
+                <p className="text-xs text-slate-400 mb-4">
+                  {formData.webhookProvider === 'NONE' && 'Khi tắt, bạn sẽ phải tự kiểm tra app ngân hàng và bấm Đã Thanh Toán trên web để giao hàng.'}
+                  {formData.webhookProvider === 'SEPAY' && 'SePay sẽ tự động đối soát giao dịch và duyệt đơn ngay khi có tiền vào.'}
+                </p>
               </div>
+
+              {formData.webhookProvider === 'SEPAY' && (
+                <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                  <label className="block text-sm font-medium text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Webhook API Key</span>
+                    <a href="https://my.sepay.vn" target="_blank" rel="noreferrer" title="Đăng nhập SePay -> Chọn 'Tích hợp Webhook' ở menu bên trái để lấy mã API Key" className="text-xs text-blue-400 hover:underline">
+                      Lấy API Key ở đâu?
+                    </a>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      name="webhookApiKey"
+                      value={formData.webhookApiKey}
+                      onChange={handleChange}
+                      placeholder="Mật khẩu bí mật để nhận Webhook từ SePay"
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                    >
+                      {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Cấu hình Phí giao dịch Chuyển khoản ngân hàng */}
               <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60 space-y-3">
