@@ -9,8 +9,6 @@ import {
   useRestoreBatchMutation,
   useHardDeleteCustomerMutation,
   TelegramCustomer,
-  WalletTransaction,
-  CustomerOrder,
 } from '../api/customerApi';
 import { Pagination } from '../components/ui/Pagination';
 import {
@@ -34,9 +32,6 @@ import {
   Wallet,
   ArrowDownLeft,
   ArrowUpRight,
-  CreditCard,
-  Layers,
-  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -56,9 +51,9 @@ export const CustomersPage: React.FC = () => {
     size,
   });
 
-  const [softDeleteCustomer, { isLoading: isSoftDeleting }] = useSoftDeleteCustomerMutation();
+  const [softDeleteCustomer] = useSoftDeleteCustomerMutation();
   const [softDeleteBatch, { isLoading: isBatchDeleting }] = useSoftDeleteBatchMutation();
-  const [restoreCustomer, { isLoading: isRestoring }] = useRestoreCustomerMutation();
+  const [restoreCustomer] = useRestoreCustomerMutation();
   const [restoreBatch, { isLoading: isBatchRestoring }] = useRestoreBatchMutation();
   const [hardDeleteCustomer, { isLoading: isHardDeleting }] = useHardDeleteCustomerMutation();
 
@@ -397,6 +392,8 @@ export const CustomersPage: React.FC = () => {
           <Pagination
             currentPage={data.pageNumber}
             totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            pageSize={data.pageSize}
             onPageChange={(p) => {
               setPage(p);
               setSelectedIds([]);

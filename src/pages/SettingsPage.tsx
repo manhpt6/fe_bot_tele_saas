@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGetPaymentConfigsQuery, useGetWebhookInfoQuery, useCreatePaymentConfigMutation } from '../api/paymentApi';
 import { useChangePasswordMutation, useGetMeQuery, useUpdateMeMutation } from '../api/userApi';
-import { Save, CreditCard, Loader2, ChevronDown, ChevronUp, Search, KeyRound, Eye, EyeOff, MessageCircle, Clock, Sliders, Zap, Copy, Check, BookOpen, ExternalLink, HelpCircle } from 'lucide-react';
+import { Save, CreditCard, Loader2, ChevronDown, ChevronUp, Search, KeyRound, Eye, EyeOff, MessageCircle, Clock, Sliders, Zap, Copy, Check, BookOpen, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const SettingsPage = () => {
