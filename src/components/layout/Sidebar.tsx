@@ -1,7 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, Settings, FolderTree, Radio, UserCog, UserCircle, Warehouse, Users } from 'lucide-react';
-
-
+import { LayoutDashboard, Package, ShoppingCart, Settings, FolderTree, Radio, UserCog, UserCircle, Warehouse, Users, Receipt } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -9,6 +7,7 @@ const navItems = [
   { path: '/products', label: 'Sản phẩm', icon: Package },
   { path: '/accounts', label: 'Nhập kho', icon: Warehouse },
   { path: '/orders', label: 'Đơn hàng', icon: ShoppingCart },
+  { path: '/payment-events', label: 'Giao dịch Webhook', icon: Receipt },
   { path: '/customers', label: 'Khách hàng', icon: Users },
   { path: '/broadcast', label: 'Phát sóng', icon: Radio },
   { path: '/settings', label: 'Cấu hình', icon: Settings },
