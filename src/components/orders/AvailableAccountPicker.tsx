@@ -109,7 +109,7 @@ export const AvailableAccountPicker: React.FC<AvailableAccountPickerProps> = ({
                 {isFetching && <span className="text-blue-400 animate-pulse text-[11px]">Đang cập nhật...</span>}
               </div>
 
-              {data.accounts.map((acc, idx) => (
+              {data.accounts.map((acc) => (
                 <div
                   key={acc.id}
                   className="p-3.5 rounded-xl border border-slate-800 hover:border-blue-500/50 bg-slate-800/40 hover:bg-slate-800/80 transition-all flex items-center justify-between gap-4 group"

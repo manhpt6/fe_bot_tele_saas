@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { OrderDetail, OrderItem } from '../../types';
+import { OrderDetail } from '../../types';
 import {
   useReleaseReservedAccountMutation,
   useCompleteManualDeliveryMutation,

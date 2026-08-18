@@ -6,7 +6,6 @@ import {
   Check,
   ExternalLink,
   AlertTriangle,
-  Send,
   Loader2,
   CheckCircle2,
   ShieldAlert,

@@ -48,9 +48,7 @@ import {
   Send,
   KeyRound,
   Package,
-  FileText,
   ShoppingCart,
-  Truck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -985,7 +983,6 @@ const CustomerOrderDetailModal: React.FC<{
 }> = ({ orderId, onClose, formatMoney, formatDate }) => {
   const { data: orderDetail, isLoading } = useGetOrderByIdQuery(orderId);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [quickDeliveryPayload, setQuickDeliveryPayload] = useState('');
 
   const handleCopy = (text: string, key: string, msg: string) => {
     navigator.clipboard.writeText(text);
@@ -1006,7 +1003,7 @@ const CustomerOrderDetailModal: React.FC<{
       }
     }
 
-    const payload = quickDeliveryPayload.trim() || accountsBlock || orderDetail.adminNote || '[Chưa nhập tài khoản]';
+    const payload = orderDetail.manualDeliveryContent || accountsBlock || orderDetail.adminNote || '[Chưa nhập tài khoản]';
 
     return `🎉 CẢM ƠN BẠN ĐÃ MUA HÀNG TẠI SHOP!
 ──────────────────────────

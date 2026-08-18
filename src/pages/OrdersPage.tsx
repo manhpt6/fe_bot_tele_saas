@@ -23,10 +23,8 @@ import {
   Check,
   ExternalLink,
   Send,
-  FileText,
   MessageSquare,
   Truck,
-  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
@@ -121,19 +119,6 @@ export const OrdersPage = () => {
     }
   };
 
-  const handleQuickMarkDelivered = async (orderId: number, note: string) => {
-    try {
-      await markManuallyDelivered({
-        orderId,
-        note: note.trim() || 'Đã bàn giao tài khoản cho khách qua chat Telegram',
-      }).unwrap();
-      toast.success('Đã lưu thông tin bàn giao và hoàn tất đơn hàng!');
-      setQuickDeliveryPayload('');
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Không thể đánh dấu đã giao.');
-    }
-  };
-
   const handleRefundSubmit = async () => {
     if (!refundTargetOrder) return;
     try {
@@ -159,7 +144,7 @@ export const OrdersPage = () => {
       }
     }
 
-    const payload = quickDeliveryPayload.trim() || accountsBlock || orderDetail.adminNote || '[Chưa nhập tài khoản]';
+    const payload = orderDetail.manualDeliveryContent || accountsBlock || orderDetail.adminNote || '[Chưa nhập tài khoản]';
 
     return `🎉 CẢM ƠN BẠN ĐÃ MUA HÀNG TẠI SHOP!
 ──────────────────────────
