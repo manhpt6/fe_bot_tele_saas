@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery } from '../api/categoryApi';
-import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, PlusCircle, MinusCircle, Bot, AlertCircle, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, PlusCircle, MinusCircle, Bot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
