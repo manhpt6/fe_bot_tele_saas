@@ -64,11 +64,6 @@ export const OrdersPage = () => {
     customerUsername?: string;
     totalAmount: number;
   } | null>(null);
-  const [manualDeliveryNote, setManualDeliveryNote] = useState('');
-
-  // State soạn tin nhắn giao hàng trực tiếp trong Modal Chi Tiết
-  const [quickDeliveryPayload, setQuickDeliveryPayload] = useState('');
-
   // State cho hiệu ứng Copy
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
