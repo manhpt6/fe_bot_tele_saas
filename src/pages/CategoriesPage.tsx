@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGetCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '../api/categoryApi';
-import { Plus, Edit2, Trash2, FolderTree, X, Search, Image as ImageIcon, ArrowUpDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, FolderTree, X, Search, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';

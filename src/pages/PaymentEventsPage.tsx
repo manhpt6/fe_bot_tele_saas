@@ -12,12 +12,9 @@ import {
   Link as LinkIcon,
   CheckCircle,
   AlertCircle,
-  Clock,
-  ArrowDownLeft,
   X,
   Copy,
   Check,
-  ShieldAlert,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
