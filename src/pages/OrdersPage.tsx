@@ -64,6 +64,7 @@ export const OrdersPage = () => {
     customerUsername?: string;
     totalAmount: number;
   } | null>(null);
+  const [manualDeliveryNote, setManualDeliveryNote] = useState('');
   // State cho hiệu ứng Copy
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -295,10 +296,7 @@ ${payload}
                 orders.map((order) => (
                   <tr
                     key={order.id}
-                    onClick={() => {
-                      setSelectedOrderId(order.id);
-                      setQuickDeliveryPayload('');
-                    }}
+                    onClick={() => setSelectedOrderId(order.id)}
                     className="hover:bg-slate-800/60 cursor-pointer transition-colors"
                   >
                     <td className="p-4">
@@ -366,10 +364,7 @@ ${payload}
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedOrderId(order.id);
-                            setQuickDeliveryPayload('');
-                          }}
+                          onClick={() => setSelectedOrderId(order.id)}
                           className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
                           title="Xem chi tiết"
                         >
