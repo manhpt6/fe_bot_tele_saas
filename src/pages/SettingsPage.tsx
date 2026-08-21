@@ -38,7 +38,8 @@ import {
   Phone,
   MessageSquare,
   Shield,
-  UserCheck
+  UserCheck,
+  Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PaymentConfigSaveRequest, BotMode, BotConfigSaveRequest } from '../types';
@@ -73,6 +74,8 @@ export const SettingsPage = () => {
 
   const [isBotPasswordModalOpen, setIsBotPasswordModalOpen] = useState(false);
   const [botAdminPassword, setBotAdminPassword] = useState('');
+  const [showBotAdminPassword, setShowBotAdminPassword] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [botActionType, setBotActionType] = useState<'SAVE' | 'DISCONNECT'>('SAVE');
 
   useEffect(() => {
@@ -469,49 +472,13 @@ export const SettingsPage = () => {
             </div>
 
             <form onSubmit={handleBotSubmit} className="space-y-4">
-              {/* Chế độ nhận tin nhắn */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Phương thức nhận tin nhắn (Mode)
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setBotFormData({ ...botFormData, mode: 'LONG_POLLING' })}
-                    className={`p-3.5 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
-                      botFormData.mode === 'LONG_POLLING'
-                        ? 'border-blue-500 bg-blue-500/10 text-white shadow-md shadow-blue-500/10'
-                        : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-600'
-                    }`}
-                  >
-                    <Radio size={16} className={`mt-0.5 shrink-0 ${botFormData.mode === 'LONG_POLLING' ? 'text-blue-400' : 'text-slate-500'}`} />
-                    <div>
-                      <div className="text-xs font-bold">Long Polling</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Không cần domain/SSL (Phù hợp máy chủ nội bộ hoặc Dev)</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBotFormData({ ...botFormData, mode: 'WEBHOOK' })}
-                    className={`p-3.5 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
-                      botFormData.mode === 'WEBHOOK'
-                        ? 'border-blue-500 bg-blue-500/10 text-white shadow-md shadow-blue-500/10'
-                        : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-600'
-                    }`}
-                  >
-                    <Globe size={16} className={`mt-0.5 shrink-0 ${botFormData.mode === 'WEBHOOK' ? 'text-blue-400' : 'text-slate-500'}`} />
-                    <div>
-                      <div className="text-xs font-bold">Webhook (HTTPS)</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Hiệu năng cao, nhận update tức thì từ máy chủ Telegram</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               {/* Webhook Parameters */}
               {botFormData.mode === 'WEBHOOK' && (
                 <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3.5 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                    <Globe size={16} />
+                    <span>Cấu Hình Webhook (Tự động kích hoạt khi WEBHOOK_ENABLED=true)</span>
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
                       Webhook Public URL (HTTPS)
@@ -530,13 +497,22 @@ export const SettingsPage = () => {
                     <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
                       <span>Webhook Secret Token (Header bảo mật X-Telegram-Bot-Api-Secret-Token)</span>
                     </label>
-                    <input
-                      type="password"
-                      value={botFormData.webhookSecretToken}
-                      onChange={(e) => setBotFormData({ ...botFormData, webhookSecretToken: e.target.value })}
-                      placeholder="Để trống nếu giữ nguyên secret hiện tại"
-                      className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showWebhookSecret ? 'text' : 'password'}
+                        value={botFormData.webhookSecretToken}
+                        onChange={(e) => setBotFormData({ ...botFormData, webhookSecretToken: e.target.value })}
+                        placeholder="Để trống nếu giữ nguyên secret hiện tại"
+                        className="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-3.5 pr-10 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                      >
+                        {showWebhookSecret ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -544,18 +520,42 @@ export const SettingsPage = () => {
               {/* Metadata Contacts */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <UserCheck size={14} className="text-cyan-400" />
-                    Admin Telegram ID
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <UserCheck size={14} className="text-cyan-400" />
+                      Admin Telegram ID
+                    </label>
+                    <a
+                      href="https://t.me/userinfobot"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      Lấy ID ở @userinfobot
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
                   <input
                     type="number"
                     value={botFormData.adminChatId}
                     onChange={(e) => setBotFormData({ ...botFormData, adminChatId: e.target.value })}
                     placeholder="VD: 123456789"
-                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs placeholder:text-slate-500"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">Dùng để nhận thông báo khẩn từ hệ thống</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Dùng nhận thông báo đơn hàng & mã OTP</p>
+
+                  {/* Khung hướng dẫn lấy ID */}
+                  <div className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1.5 mt-2">
+                    <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
+                      <Info size={13} />
+                      <span>Hướng dẫn lấy ID (cho người mới):</span>
+                    </div>
+                    <ol className="space-y-1 text-slate-300 text-[10px] leading-relaxed list-decimal list-inside pl-0.5">
+                      <li>Mở Telegram, tìm bot <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-cyan-400 underline font-semibold">@userinfobot</a></li>
+                      <li>Bấm <strong>START</strong> (hoặc gõ <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-300 font-mono">/start</code>)</li>
+                      <li>Copy dãy số ở dòng <strong>Id:</strong> (ví dụ: <code className="text-slate-400 font-mono">1234567890</code>) và dán vào ô trên</li>
+                    </ol>
+                  </div>
                 </div>
 
                 <div>
@@ -1053,15 +1053,24 @@ export const SettingsPage = () => {
                   <Lock size={14} className="text-blue-400" />
                   Mật khẩu tài khoản Admin
                 </label>
-                <input
-                  type="password"
-                  autoFocus
-                  required
-                  value={botAdminPassword}
-                  onChange={(e) => setBotAdminPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu Admin của bạn"
-                  className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showBotAdminPassword ? 'text' : 'password'}
+                    autoFocus
+                    required
+                    value={botAdminPassword}
+                    onChange={(e) => setBotAdminPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu Admin của bạn"
+                    className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-slate-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBotAdminPassword(!showBotAdminPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    {showBotAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-3 pt-2">

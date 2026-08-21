@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGetMeQuery, useUpdateMeMutation, useChangePasswordMutation } from '../api/userApi';
-import { UserCircle, Mail, MessageCircle, Shield, Save, Eye, EyeOff, Phone, Send, Headphones, KeyRound, Loader2 } from 'lucide-react';
+import { UserCircle, Mail, MessageCircle, Shield, Save, Eye, EyeOff, Phone, Send, Headphones, KeyRound, Loader2, Info, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const ProfilePage = () => {
@@ -154,21 +154,42 @@ export const ProfilePage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-              <MessageCircle size={16} />
-              Telegram Chat ID (Nhận OTP Bảo Mật)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <MessageCircle size={16} className="text-cyan-400" />
+                Telegram Chat ID (Nhận OTP Bảo Mật)
+              </label>
+              <a
+                href="https://t.me/userinfobot"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-cyan-400 hover:underline flex items-center gap-1 font-medium"
+              >
+                Lấy ID ở @userinfobot
+                <ExternalLink size={12} />
+              </a>
+            </div>
             <input
               type="text"
               inputMode="numeric"
               value={formData.telegramChatId}
               onChange={(e) => setFormData({ ...formData, telegramChatId: e.target.value })}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm font-mono"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm font-mono placeholder:text-slate-500"
               placeholder="Ví dụ: 1234567890"
             />
-            <p className="mt-1.5 text-xs text-slate-500">
-              ID này được dùng để nhận mã OTP khi khôi phục tài khoản qua Telegram.
-            </p>
+            
+            {/* Khung hướng dẫn lấy ID */}
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 mt-2">
+              <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-xs">
+                <Info size={14} />
+                <span>Hướng dẫn lấy Telegram Chat ID:</span>
+              </div>
+              <ol className="space-y-1 text-slate-300 text-xs leading-relaxed list-decimal list-inside pl-0.5">
+                <li>Mở Telegram, tìm kiếm bot <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-cyan-400 underline font-semibold">@userinfobot</a></li>
+                <li>Bấm nút <strong>START</strong> (hoặc gõ lệnh <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-300 font-mono">/start</code>)</li>
+                <li>Copy dãy số ở dòng <strong>Id:</strong> (ví dụ: <code className="text-slate-400 font-mono">1234567890</code>) và dán vào ô bên trên</li>
+              </ol>
+            </div>
           </div>
 
           {/* Thông tin liên hệ hỗ trợ khách hàng */}

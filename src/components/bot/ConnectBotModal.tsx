@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Bot, Lock, ShieldCheck, X, Loader2, Globe, Radio, AlertCircle } from 'lucide-react';
+import { Bot, Lock, ShieldCheck, X, Loader2, Info, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { useConnectBotMutation } from '../../api/botConfigApi';
-import { BotMode } from '../../types';
 import toast from 'react-hot-toast';
 
 interface ConnectBotModalProps {
@@ -11,9 +10,9 @@ interface ConnectBotModalProps {
 
 export const ConnectBotModal: React.FC<ConnectBotModalProps> = ({ isOpen, onClose }) => {
   const [botToken, setBotToken] = useState('');
-  const [mode, setMode] = useState<BotMode>('LONG_POLLING');
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [showBotToken, setShowBotToken] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [connectBot, { isLoading }] = useConnectBotMutation();
 
   if (!isOpen) return null;
@@ -29,16 +28,10 @@ export const ConnectBotModal: React.FC<ConnectBotModalProps> = ({ isOpen, onClos
       toast.error('Vui lòng nhập mật khẩu tài khoản Admin để xác thực');
       return;
     }
-    if (mode === 'WEBHOOK' && (!webhookUrl.trim() || !webhookUrl.startsWith('https://'))) {
-      toast.error('Chế độ Webhook yêu cầu URL hợp lệ bắt đầu bằng https://');
-      return;
-    }
 
     try {
       const result = await connectBot({
         botToken: botToken.trim(),
-        mode,
-        webhookUrl: mode === 'WEBHOOK' ? webhookUrl.trim() : undefined,
         adminPassword: adminPassword.trim(),
       }).unwrap();
 
@@ -46,7 +39,6 @@ export const ConnectBotModal: React.FC<ConnectBotModalProps> = ({ isOpen, onClos
       onClose();
       setBotToken('');
       setAdminPassword('');
-      setWebhookUrl('');
     } catch (err: any) {
       const msg = err?.data?.message || err?.error || 'Kết nối Telegram Bot thất bại';
       toast.error(msg);
@@ -78,94 +70,73 @@ export const ConnectBotModal: React.FC<ConnectBotModalProps> = ({ isOpen, onClos
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-              <span>Telegram Bot Token (từ @BotFather)</span>
+              <span>Telegram Bot Token</span>
               <a
                 href="https://t.me/BotFather"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs text-blue-400 hover:underline"
+                className="text-xs text-blue-400 hover:underline flex items-center gap-1"
               >
-                Lấy token ở @BotFather
+                Mở @BotFather
+                <ExternalLink size={12} />
               </a>
             </label>
-            <input
-              type="password"
-              required
-              value={botToken}
-              onChange={(e) => setBotToken(e.target.value)}
-              placeholder="VD: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Phương thức nhận tin nhắn (Mode)
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setMode('LONG_POLLING')}
-                className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
-                  mode === 'LONG_POLLING'
-                    ? 'border-blue-500 bg-blue-500/10 text-white'
-                    : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                <Radio size={16} className={`mt-0.5 shrink-0 ${mode === 'LONG_POLLING' ? 'text-blue-400' : 'text-slate-500'}`} />
-                <div>
-                  <div className="text-xs font-bold">Long Polling</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Không cần domain/SSL (Khuyên dùng nội bộ/Dev)</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMode('WEBHOOK')}
-                className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
-                  mode === 'WEBHOOK'
-                    ? 'border-blue-500 bg-blue-500/10 text-white'
-                    : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-600'
-                }`}
-              >
-                <Globe size={16} className={`mt-0.5 shrink-0 ${mode === 'WEBHOOK' ? 'text-blue-400' : 'text-slate-500'}`} />
-                <div>
-                  <div className="text-xs font-bold">Webhook (HTTPS)</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Tốc độ tức thì, cần Public Domain có SSL</div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {mode === 'WEBHOOK' && (
-            <div className="space-y-1.5 animate-in fade-in duration-200">
-              <label className="block text-xs font-semibold text-slate-300">
-                Webhook Public URL (HTTPS)
-              </label>
+            <div className="relative">
               <input
-                type="url"
-                required={mode === 'WEBHOOK'}
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://api.yourdomain.com/api/v1/telegram/webhook"
-                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                type={showBotToken ? 'text' : 'password'}
+                required
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+                placeholder="VD: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs placeholder:text-slate-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowBotToken(!showBotToken)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {showBotToken ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
-          )}
+            <p className="text-[11px] text-slate-400 mt-1">Lấy token từ @BotFather trên Telegram</p>
+          </div>
+
+          {/* Khung hướng dẫn tạo bot */}
+          <div className="p-4 rounded-xl bg-slate-950/80 border border-blue-500/30 text-xs space-y-2.5">
+            <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
+              <Info size={16} />
+              <span>Hướng dẫn tạo Bot:</span>
+            </div>
+            <ol className="space-y-1.5 text-slate-300 text-[11px] leading-relaxed list-decimal list-inside pl-1">
+              <li>Mở Telegram, tìm kiếm <strong>@BotFather</strong></li>
+              <li>Gửi lệnh <code className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-300 font-mono">/newbot</code></li>
+              <li>Đặt tên và username cho bot (ví dụ: <code className="text-slate-400 font-mono">myshop_bot</code>)</li>
+              <li>Copy chuỗi HTTP API Token và dán vào ô bên trên</li>
+            </ol>
+          </div>
 
           <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
               <Lock size={14} className="text-amber-400" />
               <span>Xác thực Mật khẩu Quản trị (Sudo Verification)</span>
             </div>
-            <input
-              type="password"
-              required
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="Nhập mật khẩu tài khoản Admin hiện tại"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
-            />
+            <div className="relative">
+              <input
+                type={showAdminPassword ? 'text' : 'password'}
+                required
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Nhập mật khẩu tài khoản Admin hiện tại"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-10 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs placeholder:text-slate-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAdminPassword(!showAdminPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
@@ -182,7 +153,7 @@ export const ConnectBotModal: React.FC<ConnectBotModalProps> = ({ isOpen, onClos
               className="w-1/2 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition-colors"
             >
               {isLoading ? <Loader2 className="animate-spin" size={16} /> : <ShieldCheck size={16} />}
-              <span>{isLoading ? 'Đang kết nối...' : 'Xác Nhận & Kết Nối'}</span>
+              <span>{isLoading ? 'Đang kết nối...' : 'Kết Nối'}</span>
             </button>
           </div>
         </form>
