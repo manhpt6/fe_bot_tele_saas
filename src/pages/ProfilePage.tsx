@@ -19,6 +19,9 @@ export const ProfilePage = () => {
     isSupportContact: true,
   });
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+
   // Form 2: Đổi mật khẩu bảo mật
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
@@ -29,6 +32,8 @@ export const ProfilePage = () => {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const isChatIdModified = Boolean(meData && formData.telegramChatId.trim() !== (meData.telegramChatId || ''));
 
   useEffect(() => {
     if (meData) {
@@ -41,6 +46,7 @@ export const ProfilePage = () => {
         telegramUsername: meData.telegramUsername || '',
         isSupportContact: meData.isSupportContact !== undefined ? meData.isSupportContact : true,
       });
+      setCurrentPassword('');
     }
   }, [meData]);
 
@@ -48,6 +54,11 @@ export const ProfilePage = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!meData) return;
+
+    if (isChatIdModified && !currentPassword.trim()) {
+      toast.error('Vui lòng nhập mật khẩu hiện tại để xác nhận thay đổi Telegram Chat ID nhận OTP!');
+      return;
+    }
 
     try {
       await updateMe({
@@ -58,9 +69,11 @@ export const ProfilePage = () => {
         zalo: formData.zalo.trim() || undefined,
         telegramUsername: formData.telegramUsername.trim() || undefined,
         isSupportContact: formData.isSupportContact,
+        currentPassword: isChatIdModified ? currentPassword : undefined,
       }).unwrap();
 
       toast.success('Cập nhật hồ sơ thành công!');
+      setCurrentPassword('');
     } catch (error: any) {
       toast.error(error?.data?.message || 'Lỗi khi cập nhật hồ sơ');
     }
@@ -190,6 +203,43 @@ export const ProfilePage = () => {
                 <li>Copy dãy số ở dòng <strong>Id:</strong> (ví dụ: <code className="text-slate-400 font-mono">1234567890</code>) và dán vào ô bên trên</li>
               </ol>
             </div>
+
+            {/* BẢO MẬT: Bắt buộc nhập mật khẩu khi thay đổi Chat ID nhận OTP */}
+            {isChatIdModified && (
+              <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 text-amber-400 text-sm font-semibold">
+                  <Shield size={16} />
+                  <span>Xác thực bảo mật khi thay đổi kênh nhận OTP</span>
+                </div>
+                <p className="text-xs text-amber-200/80">
+                  Bạn đang thay đổi Telegram Chat ID nhận mã OTP. Vui lòng nhập mật khẩu tài khoản hiện tại để xác nhận.
+                </p>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Mật khẩu hiện tại của bạn <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full bg-slate-900 border border-amber-500/40 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-sm pr-10"
+                      placeholder="Nhập mật khẩu hiện tại..."
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-form-type="other"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Thông tin liên hệ hỗ trợ khách hàng */}
@@ -264,7 +314,7 @@ export const ProfilePage = () => {
           <div className="pt-4 flex justify-end">
             <button
               type="submit"
-              disabled={isUpdatingProfile}
+              disabled={isUpdatingProfile || (isChatIdModified && !currentPassword.trim())}
               className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-colors font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 text-sm"
             >
               {isUpdatingProfile ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
