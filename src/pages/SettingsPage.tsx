@@ -534,9 +534,11 @@ export const SettingsPage = () => {
                     </a>
                   </div>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={botFormData.adminChatId}
-                    onChange={(e) => setBotFormData({ ...botFormData, adminChatId: e.target.value })}
+                    onChange={(e) => setBotFormData({ ...botFormData, adminChatId: e.target.value.replace(/\D/g, '') })}
                     placeholder="VD: 123456789"
                     className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs placeholder:text-slate-500"
                   />
