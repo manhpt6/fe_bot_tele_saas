@@ -32,10 +32,14 @@ function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/payment-events" element={<PaymentEventsPage />} />
             <Route path="/customers" element={<CustomersPage />} />
-            <Route path="/broadcast" element={<BroadcastPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/admins" element={<AdminsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            
+            {/* Admin Only Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+              <Route path="/broadcast" element={<BroadcastPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/admins" element={<AdminsPage />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
