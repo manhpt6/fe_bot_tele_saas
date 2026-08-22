@@ -73,7 +73,6 @@ export const SettingsPage = () => {
   const [isBotPasswordModalOpen, setIsBotPasswordModalOpen] = useState(false);
   const [botAdminPassword, setBotAdminPassword] = useState('');
   const [showBotAdminPassword, setShowBotAdminPassword] = useState(false);
-  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [botActionType, setBotActionType] = useState<'SAVE' | 'DISCONNECT'>('SAVE');
 
   useEffect(() => {
@@ -489,28 +488,9 @@ export const SettingsPage = () => {
                       placeholder="https://api.yourdomain.com/api/v1/telegram/webhook"
                       className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
-                      <span>Webhook Secret Token (Header bảo mật X-Telegram-Bot-Api-Secret-Token)</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showWebhookSecret ? 'text' : 'password'}
-                        value={botFormData.webhookSecretToken}
-                        onChange={(e) => setBotFormData({ ...botFormData, webhookSecretToken: e.target.value })}
-                        placeholder="Để trống nếu giữ nguyên secret hiện tại"
-                        className="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-3.5 pr-10 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowWebhookSecret(!showWebhookSecret)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                      >
-                        {showWebhookSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Header bảo mật (<code className="text-cyan-400">X-Telegram-Bot-Api-Secret-Token</code>) được hệ thống tự động sinh và mã hóa ngầm.
+                    </p>
                   </div>
                 </div>
               )}
