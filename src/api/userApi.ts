@@ -50,6 +50,7 @@ export interface UserProfileUpdateRequest {
   telegramUsername?: string;
   isSupportContact?: boolean;
   newPassword?: string;
+  currentPassword?: string;
 }
 
 export interface ChangePasswordRequest {
