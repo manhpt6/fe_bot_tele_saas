@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
+import { useGetMeQuery } from '../../api/userApi';
 import {
   LayoutDashboard,
   Package,
@@ -55,7 +56,9 @@ const navItems: NavItem[] = [
 
 export const Sidebar = () => {
   const location = useLocation();
-  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const authUser = useSelector((state: RootState) => state.auth.user);
+  const { data: meData } = useGetMeQuery();
+  const currentUser = meData || authUser;
 
   // Kiểm tra xem hiện tại có đang ở trang đơn hàng hoặc webhook không
   const isOrderPathActive =

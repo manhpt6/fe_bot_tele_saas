@@ -18,10 +18,13 @@ import { ProfilePage } from './pages/ProfilePage';
 
 import { useSelector } from 'react-redux';
 import { RootState } from './store/store';
+import { useGetMeQuery } from './api/userApi';
 
 const RootRedirect = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
-  return <Navigate to={user?.role === 'ADMIN' ? '/dashboard' : '/orders'} replace />;
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { data: meData } = useGetMeQuery(undefined, { skip: !isAuthenticated });
+  const currentUser = meData || user;
+  return <Navigate to={currentUser?.role === 'ADMIN' ? '/dashboard' : '/orders'} replace />;
 };
 
 function App() {
