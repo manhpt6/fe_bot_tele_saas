@@ -206,7 +206,7 @@ export interface SetupStatus {
 
 export interface ConnectBotRequest {
   botToken: string;
-  mode: BotMode;
+  mode?: BotMode;
   webhookUrl?: string;
   adminPassword: string;
 }

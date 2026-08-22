@@ -34,10 +34,8 @@ import {
   Radio,
   Globe,
   Power,
-  RefreshCw,
   Phone,
   MessageSquare,
-  Shield,
   UserCheck,
   Info
 } from 'lucide-react';
