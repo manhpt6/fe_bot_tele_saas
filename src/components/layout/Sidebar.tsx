@@ -34,7 +34,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN'] },
   { path: '/categories', label: 'Danh mục', icon: FolderTree },
   { path: '/products', label: 'Sản phẩm', icon: Package },
   { path: '/accounts', label: 'Nhập kho', icon: Warehouse },

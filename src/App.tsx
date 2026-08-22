@@ -16,6 +16,14 @@ import { BroadcastPage } from './pages/BroadcastPage';
 import { AdminsPage } from './pages/AdminsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
+import { useSelector } from 'react-redux';
+import { RootState } from './store/store';
+
+const RootRedirect = () => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  return <Navigate to={user?.role === 'ADMIN' ? '/dashboard' : '/orders'} replace />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -24,8 +32,7 @@ function App() {
         
         <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
@@ -36,6 +43,7 @@ function App() {
             
             {/* Admin Only Routes */}
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/broadcast" element={<BroadcastPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/admins" element={<AdminsPage />} />
