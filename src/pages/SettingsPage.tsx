@@ -469,32 +469,6 @@ export const SettingsPage = () => {
             </div>
 
             <form onSubmit={handleBotSubmit} className="space-y-4">
-              {/* Webhook Parameters */}
-              {botFormData.mode === 'WEBHOOK' && (
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3.5 animate-in fade-in duration-200">
-                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
-                    <Globe size={16} />
-                    <span>Cấu Hình Webhook (Tự động kích hoạt khi WEBHOOK_ENABLED=true)</span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Webhook Public URL (HTTPS)
-                    </label>
-                    <input
-                      type="url"
-                      required={botFormData.mode === 'WEBHOOK'}
-                      value={botFormData.webhookUrl}
-                      onChange={(e) => setBotFormData({ ...botFormData, webhookUrl: e.target.value })}
-                      placeholder="https://api.yourdomain.com/api/v1/telegram/webhook"
-                      className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
-                    />
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Header bảo mật (<code className="text-cyan-400">X-Telegram-Bot-Api-Secret-Token</code>) được hệ thống tự động sinh và mã hóa ngầm.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* Metadata Contacts */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div>
