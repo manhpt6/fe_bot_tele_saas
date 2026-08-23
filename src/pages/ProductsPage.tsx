@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery, useCreateCategoryMutation } from '../api/categoryApi';
 import { ProductUpsertPayload } from '../types';
-import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, FolderTree, RefreshCw, Copy, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, FolderTree, RefreshCw, Copy, Check, PlusCircle, MinusCircle, Sparkles, Bot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -35,9 +35,9 @@ export const ProductsPage = () => {
   const { data: categoriesPage } = useGetCategoriesQuery({ size: 100 });
   const categories = categoriesPage?.content || [];
   const [deleteProduct] = useDeleteProductMutation();
-  const [createProduct] = useCreateProductMutation();
+  const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
-  const [createCategoryMutation] = useCreateCategoryMutation();
+  const [createCategoryMutation, { isLoading: isCreatingCategory }] = useCreateCategoryMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewProductInfo, setViewProductInfo] = useState<any | null>(null);
