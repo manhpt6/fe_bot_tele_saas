@@ -6,19 +6,14 @@ import {
   Edit2,
   CheckCircle2,
   XCircle,
-  Calendar,
   Layers,
   Users,
   Percent,
   Coins,
   X,
-  Clock,
   Tag,
   ShieldAlert,
-  Sparkles,
   TrendingUp,
-  AlertTriangle,
-  ChevronRight,
   Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -539,9 +534,11 @@ export const VouchersPage = () => {
         {voucherPage && voucherPage.totalPages > 1 && (
           <div className="p-4 border-t border-slate-700/50 bg-slate-800/20">
             <Pagination
-              currentPage={page + 1}
+              currentPage={page}
               totalPages={voucherPage.totalPages}
-              onPageChange={(p) => setPage(p - 1)}
+              totalElements={voucherPage.totalElements}
+              pageSize={voucherPage.pageSize}
+              onPageChange={(p) => setPage(p)}
             />
           </div>
         )}
