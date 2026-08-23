@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery, useCreateCategoryMutation } from '../api/categoryApi';
 import { ProductUpsertPayload } from '../types';
-import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, PlusCircle, MinusCircle, Bot, Sparkles, FolderTree, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, FolderTree, RefreshCw, Copy, Check, PlusCircle, MinusCircle, Sparkles, Bot } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -12,7 +12,18 @@ import { generateShortSlug } from '../utils/slugUtils';
 export const ProductsPage = () => {
   const [page, setPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  const handleCopyCode = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(String(id));
+    setCopiedId(id);
+    toast.success(`Đã sao chép mã sản phẩm: #${id}`);
+    setTimeout(() => {
+      setCopiedId((prev) => (prev === id ? null : prev));
+    }, 1500);
+  };
 
   const { data: pageResponse, isLoading } = useGetProductsQuery({
     page,
@@ -258,6 +269,7 @@ export const ProductsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="p-4">Mã SP</th>
                 <th className="p-4">Ảnh</th>
                 <th className="p-4">Sản phẩm</th>
                 <th className="p-4">Giá (VND)</th>
@@ -270,11 +282,11 @@ export const ProductsPage = () => {
             <tbody className="divide-y divide-slate-800/50 text-sm">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">Đang tải dữ liệu...</td>
+                  <td colSpan={8} className="p-8 text-center text-slate-500">Đang tải dữ liệu...</td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     <div className="flex flex-col items-center">
                       <Package size={48} className="mb-2 opacity-20" />
                       <p>Chưa có sản phẩm nào</p>
@@ -284,6 +296,25 @@ export const ProductsPage = () => {
               ) : (
                 products.map((product) => (
                   <tr key={product.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="p-4">
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyCode(e, product.id)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-bold border transition-all duration-200 group cursor-pointer ${
+                          copiedId === product.id
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 ring-1 ring-emerald-500/50'
+                            : 'bg-slate-800/80 text-blue-400 border-slate-700 hover:bg-slate-700/80 hover:border-blue-500/50 hover:text-blue-300'
+                        }`}
+                        title="Bấm chuột trái để sao chép mã sản phẩm"
+                      >
+                        {copiedId === product.id ? (
+                          <Check size={13} className="text-emerald-400 animate-in zoom-in-50" />
+                        ) : (
+                          <Copy size={13} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                        )}
+                        <span>#{product.id}</span>
+                      </button>
+                    </td>
                     <td className="p-4">
                       {product.imageUrl ? (
                         <img src={product.imageUrl} alt={product.name} className="w-10 h-10 object-cover rounded-lg border border-slate-700" />
@@ -698,6 +729,22 @@ export const ProductsPage = () => {
                 <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 space-y-2 text-sm">
                   <div className="flex items-center gap-2 mb-3 text-slate-300 font-semibold border-b border-slate-700/50 pb-2">
                     <Package size={18} /> Thông Tin Chung
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Mã sản phẩm:</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopyCode(e, viewProductInfo.id)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-mono font-bold border transition-all cursor-pointer ${
+                        copiedId === viewProductInfo.id
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-slate-900/80 text-blue-400 border-slate-700 hover:bg-slate-700 hover:text-white'
+                      }`}
+                      title="Bấm để sao chép mã"
+                    >
+                      {copiedId === viewProductInfo.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      #{viewProductInfo.id}
+                    </button>
                   </div>
                   <p><span className="text-slate-400">Tên SP:</span> <span className="text-white font-medium">{viewProductInfo.name}</span></p>
                   <p><span className="text-slate-400">Mã (Slug):</span> <span className="text-white">{viewProductInfo.slug}</span></p>
