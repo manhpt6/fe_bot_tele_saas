@@ -231,7 +231,7 @@ export const AccountsPage = () => {
                 >
                   <option value="">Tất cả sản phẩm</option>
                   {products.map(p => (
-                    <option key={p.id} value={p.id}>[#{p.id}] {p.name}</option>
+                    <option key={p.id} value={p.id}>[{p.slug}] {p.name}</option>
                   ))}
                 </select>
               </div>
@@ -336,15 +336,15 @@ export const AccountsPage = () => {
               </label>
 
               {selectedProduct ? (
-                <div className="bg-slate-800/80 border border-blue-500/40 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-blue-500/5">
+                <div className="bg-slate-800/80 border border-purple-500/40 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-purple-500/5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-mono font-bold text-sm shrink-0">
-                      #{selectedProduct.id}
+                    <div className="h-10 px-3 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-300 font-mono font-bold text-sm shrink-0">
+                      {selectedProduct.slug}
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-white text-base">{selectedProduct.name}</span>
-                        <span className="text-xs font-mono text-slate-400 bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700">/{selectedProduct.slug}</span>
+                        <span className="text-xs font-mono text-slate-500 bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700">ID: #{selectedProduct.id}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-400 mt-1 flex-wrap">
                         <span className="text-emerald-400 font-medium">Kho hiện tại: <strong className="text-emerald-300 font-mono">{selectedProduct.stockCount}</strong> acc</span>
@@ -372,7 +372,7 @@ export const AccountsPage = () => {
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       type="text"
-                      placeholder="Tìm hoặc dán Mã SP (#ID), Tên sản phẩm, Slug..."
+                      placeholder="Tìm hoặc dán Mã Slug (vd: netflix-482), Tên sản phẩm hoặc #ID..."
                       value={productSearchInput}
                       onChange={(e) => {
                         setProductSearchInput(e.target.value);
@@ -389,7 +389,7 @@ export const AccountsPage = () => {
                           }
                         }
                       }}
-                      className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-10 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-10 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                     />
                     {productSearchInput ? (
                       <button
@@ -430,17 +430,17 @@ export const AccountsPage = () => {
                                 setIsProductDropdownOpen(false);
                                 setProductSearchInput('');
                               }}
-                              className="w-full p-3 text-left hover:bg-blue-600/10 hover:border-l-4 hover:border-l-blue-500 transition-all flex items-center justify-between gap-3 group cursor-pointer"
+                              className="w-full p-3 text-left hover:bg-purple-600/10 hover:border-l-4 hover:border-l-purple-500 transition-all flex items-center justify-between gap-3 group cursor-pointer"
                             >
                               <div className="flex items-center gap-2.5">
-                                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-blue-400 border border-slate-700 group-hover:border-blue-500/50">
-                                  #{p.id}
+                                <span className="font-mono text-xs font-bold px-2 py-1 rounded bg-purple-950/50 text-purple-300 border border-purple-800/60 group-hover:border-purple-500/50">
+                                  {p.slug}
                                 </span>
                                 <div>
-                                  <div className="font-medium text-white text-sm group-hover:text-blue-300 transition-colors">
+                                  <div className="font-medium text-white text-sm group-hover:text-purple-200 transition-colors">
                                     {p.name}
                                   </div>
-                                  <div className="text-xs text-slate-400 font-mono">/{p.slug}</div>
+                                  <div className="text-xs text-slate-500 font-mono">ID: #{p.id}</div>
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
