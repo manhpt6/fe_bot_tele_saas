@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useGetProductsQuery, useDeleteProductMutation, useCreateProductMutation, useUpdateProductMutation } from '../api/productApi';
 import { useGetCategoriesQuery, useCreateCategoryMutation } from '../api/categoryApi';
 import { ProductUpsertPayload } from '../types';
-import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, FolderTree, RefreshCw, Copy, Check, PlusCircle, MinusCircle, Sparkles, Bot } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, X, Search, Eye, Tag, Settings, Box, Image as ImageIcon, FolderTree, RefreshCw, Copy, Check, PlusCircle, MinusCircle, Sparkles, Bot, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -25,13 +25,40 @@ export const ProductsPage = () => {
     }, 1500);
   };
 
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('');
+  const [filterStock, setFilterStock] = useState<string>('');
+  const [filterDeliveryMode, setFilterDeliveryMode] = useState<string>('');
+  const [filterActive, setFilterActive] = useState<string>('');
+
   const { data: pageResponse, isLoading } = useGetProductsQuery({
     page,
     size: 10,
-    keyword: debouncedSearchTerm
+    keyword: debouncedSearchTerm,
+    categoryId: filterCategoryId ? Number(filterCategoryId) : undefined
   });
 
-  const products = pageResponse?.content || [];
+  const rawProducts = pageResponse?.content || [];
+  const products = rawProducts.filter(p => {
+    if (filterStock === 'OUT_OF_STOCK' && p.stockCount > 0) return false;
+    if (filterStock === 'IN_STOCK' && p.stockCount === 0) return false;
+    if (filterDeliveryMode && p.deliveryMode !== filterDeliveryMode) return false;
+    if (filterActive === 'ACTIVE' && !p.isActive) return false;
+    if (filterActive === 'INACTIVE' && p.isActive) return false;
+    return true;
+  });
+
+  const hasActiveFilters = Boolean(
+    searchTerm || filterCategoryId || filterStock || filterDeliveryMode || filterActive
+  );
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setFilterCategoryId('');
+    setFilterStock('');
+    setFilterDeliveryMode('');
+    setFilterActive('');
+    setPage(0);
+  };
   const { data: categoriesPage } = useGetCategoriesQuery({ size: 100 });
   const categories = categoriesPage?.content || [];
   const [deleteProduct] = useDeleteProductMutation();
@@ -248,19 +275,102 @@ export const ProductsPage = () => {
         </button>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+      {/* Filter Toolbar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Tìm kiếm sản phẩm..."
+            placeholder="Tìm theo tên, mã slug..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(0);
             }}
-            className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-500"
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Lọc danh mục */}
+          <div className="relative min-w-[150px] flex-1 sm:flex-initial">
+            <select
+              value={filterCategoryId}
+              onChange={(e) => {
+                setFilterCategoryId(e.target.value);
+                setPage(0);
+              }}
+              className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">📁 Tất cả danh mục</option>
+              {categories.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Lọc tình trạng kho */}
+          <div className="relative min-w-[140px] flex-1 sm:flex-initial">
+            <select
+              value={filterStock}
+              onChange={(e) => {
+                setFilterStock(e.target.value);
+                setPage(0);
+              }}
+              className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">📦 Tất cả kho</option>
+              <option value="OUT_OF_STOCK">🔴 Hết hàng (0 acc)</option>
+              <option value="IN_STOCK">🟢 Còn hàng (&gt; 0 acc)</option>
+            </select>
+          </div>
+
+          {/* Lọc chế độ giao hàng */}
+          <div className="relative min-w-[140px] flex-1 sm:flex-initial">
+            <select
+              value={filterDeliveryMode}
+              onChange={(e) => {
+                setFilterDeliveryMode(e.target.value);
+                setPage(0);
+              }}
+              className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">⚡ Tất cả chế độ</option>
+              <option value="AUTO">⚡ Tự động (Kho)</option>
+              <option value="MANUAL">👤 Thủ công (Admin)</option>
+            </select>
+          </div>
+
+          {/* Lọc trạng thái bán */}
+          <div className="relative min-w-[130px] flex-1 sm:flex-initial">
+            <select
+              value={filterActive}
+              onChange={(e) => {
+                setFilterActive(e.target.value);
+                setPage(0);
+              }}
+              className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            >
+              <option value="">🔘 Trạng thái</option>
+              <option value="ACTIVE">Đang mở bán</option>
+              <option value="INACTIVE">Tạm ngừng bán</option>
+            </select>
+          </div>
+
+          {/* Nút đặt lại bộ lọc */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors shrink-0 cursor-pointer"
+              title="Xóa toàn bộ bộ lọc về mặc định"
+            >
+              <RotateCcw size={13} />
+              <span>Đặt lại</span>
+            </button>
+          )}
         </div>
       </div>
 
