@@ -479,12 +479,12 @@ export const VouchersPage = () => {
                         <div className="text-xs space-y-0.5 font-mono">
                           {v.startDate && (
                             <div className="text-slate-400 flex items-center gap-1">
-                              <span className="text-slate-500">Từ:</span> {new Date(v.startDate).toLocaleDateString('vi-VN')}
+                              <span className="text-slate-500">Từ:</span> {new Date(v.startDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} {new Date(v.startDate).toLocaleDateString('vi-VN')}
                             </div>
                           )}
                           {v.endDate && (
                             <div className="text-slate-400 flex items-center gap-1">
-                              <span className="text-slate-500">Đến:</span> {new Date(v.endDate).toLocaleDateString('vi-VN')}
+                              <span className="text-slate-500">Đến:</span> {new Date(v.endDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} {new Date(v.endDate).toLocaleDateString('vi-VN')}
                             </div>
                           )}
                           {!v.startDate && !v.endDate && <span className="text-slate-500 italic font-sans">Vô thời hạn</span>}
