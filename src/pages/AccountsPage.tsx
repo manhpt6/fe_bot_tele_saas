@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
-import { Users, Upload, Trash2, Search, Filter, Eye, X, ShieldCheck, RotateCcw, Package, ChevronDown, Check } from 'lucide-react';
+import { Users, Upload, Trash2, Search, Filter, Eye, X, RotateCcw, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -39,7 +39,7 @@ export const AccountsPage = () => {
   const products = productPage?.content || [];
   
   const [deleteAccount] = useDeleteAccountMutation();
-  const [importExcel, { isLoading: isImporting }] = useImportExcelMutation();
+  const [importExcel] = useImportExcelMutation();
   
   const [activeTab, setActiveTab] = useState<'LIST' | 'IMPORT'>('LIST');
   const [importMode, setImportMode] = useState<'MANUAL' | 'TEXTAREA' | 'EXCEL'>('MANUAL');
@@ -54,7 +54,7 @@ export const AccountsPage = () => {
   
   const [viewAccount, setViewAccount] = useState<any | null>(null);
 
-  const [addBulkAccounts, { isLoading: isAddingManual }] = useAddBulkAccountsMutation();
+  const [addBulkAccounts] = useAddBulkAccountsMutation();
 
   const autoProducts = products.filter(p => p.deliveryMode === 'AUTO');
   const filteredAutoProducts = autoProducts.filter(p => {
