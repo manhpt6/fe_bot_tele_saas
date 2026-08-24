@@ -236,6 +236,15 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     );
   };
 
+  const isBeforeMinDate = (d: Date): boolean => {
+    if (!minDate) return false;
+    const min = new Date(minDate);
+    if (isNaN(min.getTime())) return false;
+    const targetDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const minDay = new Date(min.getFullYear(), min.getMonth(), min.getDate()).getTime();
+    return targetDay < minDay;
+  };
+
   const monthNames = [
     'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
     'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12',
@@ -372,11 +381,13 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             {daysArray.map(({ day, isCurrentMonth, dateObj }, idx) => {
               const isSelected = isSameDay(dateObj, tempDate);
               const isToday = isSameDay(dateObj, new Date());
+              const isDayDisabled = isBeforeMinDate(dateObj);
 
               return (
                 <button
                   key={idx}
                   type="button"
+                  disabled={isDayDisabled}
                   onClick={() => {
                     setTempDate(dateObj);
                     if (!isCurrentMonth) {
@@ -385,7 +396,9 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                     }
                   }}
                   className={`h-8 w-8 mx-auto flex items-center justify-center text-xs rounded-lg transition-all ${
-                    isSelected
+                    isDayDisabled
+                      ? 'text-slate-600 opacity-40 cursor-not-allowed bg-slate-900/50'
+                      : isSelected
                       ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-600/40 scale-105'
                       : isToday
                       ? 'border border-indigo-400 text-indigo-400 hover:bg-slate-800 font-semibold'
