@@ -165,6 +165,19 @@ export const ProductsPage = () => {
       toast.error('Tồn kho thủ công phải là số nguyên từ 0 trở lên!');
       return;
     }
+
+    if (formData.imageUrl.trim()) {
+      const trimmedUrl = formData.imageUrl.trim();
+      if (trimmedUrl.startsWith('data:image') || trimmedUrl.length > 2000) {
+        toast.error('❌ Lỗi: Bạn đang dán mã Base64! Vui lòng dùng link ảnh thật.');
+        return;
+      }
+      if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        toast.error('❌ Lỗi: Link hình ảnh phải bắt đầu bằng http:// hoặc https://');
+        return;
+      }
+    }
+
     try {
       const attributesRecord = attributeList.reduce((acc, curr) => {
         if (curr.key.trim() && curr.value.trim()) {
