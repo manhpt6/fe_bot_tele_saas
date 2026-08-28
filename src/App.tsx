@@ -27,6 +27,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from './store/store';
 import { useGetMeQuery } from './api/userApi';
 
+import { SimulationProvider } from './context/SimulationContext';
+
 const RootRedirect = () => {
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { data: meData } = useGetMeQuery(undefined, { skip: !isAuthenticated });
@@ -44,7 +46,8 @@ const RootRedirect = () => {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <SimulationProvider>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         
@@ -81,6 +84,7 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      </SimulationProvider>
       <Toaster 
         position="top-right" 
         toastOptions={{
