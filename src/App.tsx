@@ -1,7 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { SubscriptionPage } from './pages/SubscriptionPage';
+import { SaasTenantsPage } from './pages/SaasTenantsPage';
+import { SaasRevenuePage } from './pages/SaasRevenuePage';
+import { SaasPlansPage } from './pages/SaasPlansPage';
+import { SaasPlatformSettingsPage } from './pages/SaasPlatformSettingsPage';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
@@ -25,7 +31,14 @@ const RootRedirect = () => {
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { data: meData } = useGetMeQuery(undefined, { skip: !isAuthenticated });
   const currentUser = meData || user;
-  return <Navigate to={currentUser?.role === 'ADMIN' ? '/dashboard' : '/orders'} replace />;
+
+  if (currentUser?.role === 'SUPER_ADMIN') {
+    return <Navigate to="/saas/revenue" replace />;
+  }
+  if (currentUser?.role === 'TENANT_ADMIN' || currentUser?.role === 'ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Navigate to="/orders" replace />;
 };
 
 function App() {
@@ -33,10 +46,21 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         
         <Route element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/" element={<RootRedirect />} />
+            
+            {/* Super Admin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
+              <Route path="/saas/revenue" element={<SaasRevenuePage />} />
+              <Route path="/saas/tenants" element={<SaasTenantsPage />} />
+              <Route path="/saas/plans" element={<SaasPlansPage />} />
+              <Route path="/saas/platform-settings" element={<SaasPlatformSettingsPage />} />
+            </Route>
+
+            {/* Tenant Shared Routes */}
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
@@ -44,9 +68,10 @@ function App() {
             <Route path="/payment-events" element={<PaymentEventsPage />} />
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
             
-            {/* Admin Only Routes */}
-            <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            {/* Tenant Admin Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN']} />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/vouchers" element={<VouchersPage />} />
               <Route path="/broadcast" element={<BroadcastPage />} />
@@ -67,7 +92,7 @@ function App() {
         }} 
       />
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

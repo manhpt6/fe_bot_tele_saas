@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLoginMutation, useForgotPasswordMutation, useResetPasswordMutation } from '../api/authApi';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../store/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Bot, KeyRound, MessageCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
@@ -31,7 +31,13 @@ export const LoginPage = () => {
         user: { id: response.userId, username: response.userName, role: response.role }
       }));
       toast.success('Đăng nhập thành công!');
-      navigate(response.role === 'ADMIN' ? '/dashboard' : '/orders');
+      if (response.role === 'SUPER_ADMIN') {
+        navigate('/saas/revenue');
+      } else if (response.role === 'TENANT_ADMIN' || response.role === 'ADMIN') {
+        navigate('/dashboard');
+      } else {
+        navigate('/orders');
+      }
     } catch (err: any) {
       toast.error(err?.data?.message || 'Sai tên đăng nhập hoặc mật khẩu');
     }
@@ -140,6 +146,16 @@ export const LoginPage = () => {
                   'Đăng nhập'
                 )}
               </button>
+
+              <div className="pt-4 mt-4 border-t border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-400">Bạn muốn kinh doanh trên Telegram?</p>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center w-full py-2.5 px-4 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-bold border border-indigo-500/30 transition"
+                >
+                  🚀 Mở Shop & Dùng Thử 7 Ngày Miễn Phí
+                </Link>
+              </div>
             </form>
           </>
         )}
