@@ -176,7 +176,7 @@ export const SubscriptionPage = () => {
                   )}
 
                   {/* Limits */}
-                  <div className="mt-6 space-y-2.5 text-xs text-slate-300">
+                  <div className="mt-6 space-y-2 text-xs text-slate-300 pb-3 border-b border-slate-800">
                     <div className="flex items-center">
                       <Package className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
                       <span>
@@ -195,10 +195,37 @@ export const SubscriptionPage = () => {
                         <strong>{plan.maxBots}</strong> Bot Telegram độc lập
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <CreditCard className="w-4 h-4 mr-2 text-emerald-400 shrink-0" />
-                      <span>Tích hợp SePay nhận tiền tự động 100%</span>
-                    </div>
+                  </div>
+
+                  {/* Feature Matrix dynamic checklist */}
+                  <div className="mt-3 space-y-2">
+                    {[
+                      { key: 'AUTO_SEPAY_WEBHOOK', name: 'Tự động duyệt tiền SePay 100%' },
+                      { key: 'ALLOW_VOUCHERS', name: 'Mã giảm giá khuyến mãi' },
+                      { key: 'ALLOW_BROADCAST', name: 'Phát sóng tin nhắn Bot' },
+                      { key: 'ALLOW_EXPORT_EXCEL', name: 'Xuất dữ liệu ra Excel' },
+                      { key: 'ALLOW_ADVANCED_STATS', name: 'Báo cáo chuyên sâu' },
+                    ].map((feat) => {
+                      let hasFeat = false;
+                      try {
+                        const list = plan.featuresJson ? JSON.parse(plan.featuresJson) : [];
+                        hasFeat = Array.isArray(list) && list.includes(feat.key);
+                      } catch {
+                        hasFeat = false;
+                      }
+                      return (
+                        <div key={feat.key} className="flex items-center text-xs">
+                          {hasFeat ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-400 shrink-0" />
+                          ) : (
+                            <span className="w-3.5 h-3.5 mr-2 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">—</span>
+                          )}
+                          <span className={hasFeat ? 'text-slate-300' : 'text-slate-500 line-through'}>
+                            {feat.name}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

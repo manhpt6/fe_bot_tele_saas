@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
 import { useGetMeQuery } from '../../api/userApi';
+import { useSimulation } from '../../context/SimulationContext';
 import {
   LayoutDashboard,
   Package,
@@ -25,6 +26,7 @@ import {
   Layers,
   Globe,
   X,
+  Gamepad2,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -43,37 +45,36 @@ interface NavItem {
   label: string;
   icon: any;
   children?: SubNavItem[];
-  roles?: string[];
 }
 
-const navItems: NavItem[] = [
-  // Super Admin Zone
-  { path: '/saas/revenue', label: 'Doanh Thu SaaS', icon: TrendingUp, roles: ['SUPER_ADMIN'] },
-  { path: '/saas/tenants', label: 'Quản Lý Shops', icon: Store, roles: ['SUPER_ADMIN'] },
-  { path: '/saas/plans', label: 'Gói Cước SaaS', icon: Layers, roles: ['SUPER_ADMIN'] },
-  { path: '/saas/platform-settings', label: 'Cấu Hình Sàn', icon: Globe, roles: ['SUPER_ADMIN'] },
+// Danh sách menu DÀNH RIÊNG cho Chủ Sàn (Super Admin)
+const superAdminNavItems: NavItem[] = [
+  { path: '/saas/revenue', label: 'Doanh Thu SaaS', icon: TrendingUp },
+  { path: '/saas/tenants', label: 'Quản Lý Shops', icon: Store },
+  { path: '/saas/plans', label: 'Gói Cước Cho Thuê', icon: Layers },
+  { path: '/saas/platform-settings', label: 'Cấu Hình Sàn', icon: Globe },
+];
 
-  // Tenant Zone
-  { path: '/dashboard', label: 'Dashboard Shop', icon: LayoutDashboard, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/subscription', label: 'Gói Cước & Gia Hạn', icon: Zap, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/categories', label: 'Danh mục', icon: FolderTree, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
-  { path: '/products', label: 'Sản phẩm', icon: Package, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
-  { path: '/accounts', label: 'Nhập kho', icon: Warehouse, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
+// Danh sách menu DÀNH CHO KHÁCH THUÊ (Chủ Shop / Khi đang trong chế độ mô phỏng)
+const tenantNavItems: NavItem[] = [
+  { path: '/dashboard', label: 'Dashboard Shop', icon: LayoutDashboard },
+  { path: '/subscription', label: 'Gói Cước & Gia Hạn', icon: Zap },
+  { path: '/categories', label: 'Danh mục', icon: FolderTree },
+  { path: '/products', label: 'Sản phẩm', icon: Package },
+  { path: '/accounts', label: 'Nhập kho', icon: Warehouse },
   {
     label: 'Đơn hàng & Giao dịch',
     icon: ShoppingCart,
-    roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'],
     children: [
       { path: '/orders', label: 'Danh sách đơn hàng', icon: ClipboardList },
       { path: '/payment-events', label: 'Giao dịch chuyển khoản', icon: Receipt },
     ],
   },
-  { path: '/customers', label: 'Khách hàng', icon: Users, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
-  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/broadcast', label: 'Phát sóng', icon: Radio, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/settings', label: 'Cấu hình Bot & Shop', icon: Settings, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/admins', label: 'Nhân viên Shop', icon: UserCog, roles: ['TENANT_ADMIN', 'ADMIN'] },
-  { path: '/profile', label: 'Hồ sơ cá nhân', icon: UserCircle },
+  { path: '/customers', label: 'Khách hàng', icon: Users },
+  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket },
+  { path: '/broadcast', label: 'Phát sóng', icon: Radio },
+  { path: '/settings', label: 'Cấu hình Bot & Shop', icon: Settings },
+  { path: '/admins', label: 'Nhân viên Shop', icon: UserCog },
 ];
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
@@ -81,6 +82,14 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const authUser = useSelector((state: RootState) => state.auth.user);
   const { data: meData } = useGetMeQuery();
   const currentUser = meData || authUser;
+
+  const { isSimulating, simulatedPlan } = useSimulation();
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+
+  // Khi đang mô phỏng HOẶC khi là Chủ shop thật -> dùng menu Shop
+  // Khi là Super Admin và KHÔNG mô phỏng -> CHỈ dùng menu Sàn SaaS
+  const isViewingTenant = isSimulating || !isSuperAdmin;
+  const currentNavItems = isViewingTenant ? tenantNavItems : superAdminNavItems;
 
   const isOrderPathActive =
     location.pathname.startsWith('/orders') || location.pathname.startsWith('/payment-events');
@@ -99,18 +108,23 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
-      <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
+      {/* Brand Header */}
+      <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+          <h1 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
             BotSaaS Platform
           </h1>
-          {currentUser?.role === 'SUPER_ADMIN' ? (
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
-              Super Admin
+          {isSimulating ? (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 mt-0.5">
+              <Gamepad2 className="w-3 h-3 text-purple-400" /> Mô Phỏng: {simulatedPlan?.name}
+            </span>
+          ) : isSuperAdmin ? (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 mt-0.5">
+              👑 Super Admin
             </span>
           ) : (
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-              Chủ Shop
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 mt-0.5">
+              🏪 Chủ Shop
             </span>
           )}
         </div>
@@ -123,12 +137,10 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <X size={20} />
         </button>
       </div>
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {navItems.map((item) => {
-          if (item.roles && (!currentUser || !item.roles.includes(currentUser.role))) {
-            return null;
-          }
 
+      {/* Navigation List (SẠCH SẼ - KHÔNG TRỘN LẪN) */}
+      <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+        {currentNavItems.map((item) => {
           const Icon = item.icon;
 
           if (item.children) {
@@ -138,25 +150,25 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <div key={item.label} className="space-y-1">
                 <button
                   onClick={() => setIsOrderMenuOpen(!isOrderMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
                     hasActiveChild
-                      ? 'bg-blue-600/10 text-blue-400 font-semibold'
+                      ? 'bg-indigo-600/15 text-indigo-400 font-semibold'
                       : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <Icon size={20} className={hasActiveChild ? 'text-blue-400' : 'text-gray-400'} />
+                    <Icon size={18} className={hasActiveChild ? 'text-indigo-400' : 'text-gray-400'} />
                     <span className="font-medium text-sm">{item.label}</span>
                   </div>
                   {isOrderMenuOpen ? (
-                    <ChevronDown size={16} className="text-gray-400 transition-transform duration-200" />
+                    <ChevronDown size={15} className="text-gray-400 transition-transform duration-200" />
                   ) : (
-                    <ChevronRight size={16} className="text-gray-400 transition-transform duration-200" />
+                    <ChevronRight size={15} className="text-gray-400 transition-transform duration-200" />
                   )}
                 </button>
 
                 {isOrderMenuOpen && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l-2 border-slate-800 ml-4 animate-in slide-in-from-top-2 duration-200">
+                  <div className="pl-5 pr-2 py-1 space-y-1 border-l border-slate-800 ml-4 animate-in slide-in-from-top-2 duration-200">
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;
                       const isChildActive = location.pathname.startsWith(child.path);
@@ -168,11 +180,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                           onClick={() => onClose?.()}
                           className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                             isChildActive
-                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                               : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
                           }`}
                         >
-                          <ChildIcon size={15} />
+                          <ChildIcon size={14} />
                           <span>{child.label}</span>
                         </Link>
                       );
@@ -189,17 +201,33 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               key={item.path}
               to={item.path!}
               onClick={() => onClose?.()}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition-all ${
                 isActive
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 font-semibold'
+                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-semibold'
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
               }`}
             >
-              <Icon size={20} />
+              <Icon size={18} />
               <span className="font-medium text-sm">{item.label}</span>
             </Link>
           );
         })}
+
+        {/* Profile menu */}
+        <div className="pt-3 border-t border-slate-800 mt-3">
+          <Link
+            to="/profile"
+            onClick={() => onClose?.()}
+            className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition-all ${
+              location.pathname.startsWith('/profile')
+                ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-semibold'
+                : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+            }`}
+          >
+            <UserCircle size={18} />
+            <span className="font-medium text-sm">Hồ sơ cá nhân</span>
+          </Link>
+        </div>
       </nav>
     </aside>
   );
