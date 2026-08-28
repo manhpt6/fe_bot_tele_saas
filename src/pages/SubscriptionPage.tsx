@@ -1,0 +1,343 @@
+import React, { useState } from 'react';
+import {
+  useGetMySubscriptionQuery,
+  useGetPublicPlansQuery,
+  useSubscribePlanMutation,
+  useGetMyPaymentsQuery,
+  SaasPlan,
+  SaasPayment,
+} from '../api/saasApi';
+import {
+  Zap,
+  CheckCircle2,
+  Calendar,
+  CreditCard,
+  History,
+  QrCode,
+  AlertTriangle,
+  Sparkles,
+  Bot,
+  Package,
+  Users,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export const SubscriptionPage = () => {
+  const { data: sub, isLoading: isSubLoading, refetch: refetchSub } = useGetMySubscriptionQuery();
+  const { data: plans, isLoading: isPlansLoading } = useGetPublicPlansQuery();
+  const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery();
+
+  const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
+  const [selectedDuration, setSelectedDuration] = useState<Record<number, number>>({});
+  const [activePaymentModal, setActivePaymentModal] = useState<SaasPayment | null>(null);
+
+  const handleSubscribe = async (plan: SaasPlan) => {
+    const months = selectedDuration[plan.id] || 1;
+    try {
+      const payment = await subscribePlan({ planId: plan.id, durationMonths: months }).unwrap();
+      if (payment.status === 'PAID') {
+        toast.success('Gói cước miễn phí đã được kích hoạt thành công!');
+        refetchSub();
+      } else {
+        setActivePaymentModal(payment);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Không thể tạo yêu cầu thanh toán');
+    }
+  };
+
+  if (isSubLoading || isPlansLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-slate-900 border border-indigo-500/20 p-6 sm:p-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold uppercase tracking-wider mb-2">
+              <Zap className="w-3.5 h-3.5" /> Gói cước của bạn
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Gói: {sub?.planName || 'Chưa có gói'}
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">
+              Trạng thái:{' '}
+              <span
+                className={`font-semibold ${
+                  sub?.status === 'ACTIVE'
+                    ? 'text-emerald-400'
+                    : sub?.status === 'TRIAL'
+                    ? 'text-blue-400'
+                    : 'text-rose-400'
+                }`}
+              >
+                {sub?.status === 'ACTIVE'
+                  ? 'ĐANG HOẠT ĐỘNG'
+                  : sub?.status === 'TRIAL'
+                  ? 'DÙNG THỬ (7 NGÀY)'
+                  : 'ĐÃ HẾT HẠN'}
+              </span>
+            </p>
+          </div>
+
+          {/* Quick Metrics */}
+          <div className="flex items-center gap-4 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-slate-800">
+            <div className="text-center px-3 border-r border-slate-800">
+              <div className="text-xs text-slate-400 flex items-center justify-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Còn lại
+              </div>
+              <div className="text-2xl font-black text-indigo-400 mt-1">
+                {sub?.daysRemaining || 0} <span className="text-xs font-normal text-slate-400">ngày</span>
+              </div>
+            </div>
+            <div className="text-center px-3">
+              <div className="text-xs text-slate-400 flex items-center justify-center gap-1">
+                <Bot className="w-3.5 h-3.5" /> Trạng thái Bot
+              </div>
+              <div
+                className={`text-sm font-bold mt-2 ${
+                  sub?.isBotRunning ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {sub?.isBotRunning ? '🟢 Đang chạy' : '🔴 Tạm dừng'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pricing Cards Section */}
+      <div>
+        <div className="text-center max-w-xl mx-auto mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Nâng Cấp & Gia Hạn Gói Cước</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            Chọn gói cước phù hợp với quy mô kinh doanh của bạn để mở khóa tính năng và tăng hạn mức
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {plans?.map((plan) => {
+            const isCurrent = sub?.planId === plan.id && sub?.status !== 'EXPIRED';
+            const months = selectedDuration[plan.id] || 1;
+            const isYearly = months >= 12;
+            const price = isYearly && plan.priceYearly ? plan.priceYearly : plan.priceMonthly * months;
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative rounded-2xl flex flex-col justify-between p-6 transition duration-200 ${
+                  isCurrent
+                    ? 'bg-slate-900 border-2 border-indigo-500 shadow-xl shadow-indigo-500/10'
+                    : 'bg-slate-900/60 border border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                {isCurrent && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider">
+                    Gói hiện tại
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <div className="mt-4 flex items-baseline">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-white">
+                      {price > 0 ? `${Number(price).toLocaleString('vi-VN')}đ` : 'Miễn phí'}
+                    </span>
+                    {price > 0 && (
+                      <span className="ml-1.5 text-xs text-slate-400">/{months} tháng</span>
+                    )}
+                  </div>
+
+                  {/* Duration selector */}
+                  {plan.priceMonthly > 0 && (
+                    <div className="mt-4 flex rounded-lg bg-slate-800/80 p-1 border border-slate-700">
+                      {[1, 3, 6, 12].map((m) => (
+                        <button
+                          key={m}
+                          onClick={() =>
+                            setSelectedDuration((prev) => ({ ...prev, [plan.id]: m }))
+                          }
+                          className={`flex-1 py-1 text-xs font-semibold rounded-md transition ${
+                            months === m
+                              ? 'bg-indigo-600 text-white shadow'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {m === 12 ? '1 Năm' : `${m}T`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Limits */}
+                  <div className="mt-6 space-y-2.5 text-xs text-slate-300">
+                    <div className="flex items-center">
+                      <Package className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
+                      <span>
+                        Tối đa <strong>{plan.maxProducts ? `${plan.maxProducts} sản phẩm` : 'Không giới hạn'}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
+                      <span>
+                        <strong>{plan.maxStaff}</strong> nhân viên quản trị
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <Bot className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
+                      <span>
+                        <strong>{plan.maxBots}</strong> Bot Telegram độc lập
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-2 text-emerald-400 shrink-0" />
+                      <span>Tích hợp SePay nhận tiền tự động 100%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleSubscribe(plan)}
+                  disabled={isSubscribing}
+                  className={`mt-8 w-full py-2.5 px-4 rounded-xl text-sm font-bold transition flex items-center justify-center ${
+                    isCurrent
+                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20'
+                  }`}
+                >
+                  {isCurrent ? 'Gia hạn thêm hạn' : 'Nâng cấp ngay'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Payment History Section */}
+      <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <History className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-lg font-bold text-white">Lịch Sử Thanh Toán Gói Cước</h3>
+        </div>
+
+        {isPaymentsLoading ? (
+          <div className="py-6 text-center text-slate-500 text-sm">Đang tải lịch sử...</div>
+        ) : !payments || payments.length === 0 ? (
+          <div className="py-8 text-center text-slate-500 text-sm">
+            Chưa có giao dịch thanh toán gói cước nào.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase bg-slate-800/50 text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th className="py-3 px-4">Mã thanh toán</th>
+                  <th className="py-3 px-4">Thời hạn</th>
+                  <th className="py-3 px-4">Số tiền</th>
+                  <th className="py-3 px-4">Trạng thái</th>
+                  <th className="py-3 px-4">Thời gian</th>
+                  <th className="py-3 px-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50 text-slate-300">
+                {payments.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-800/30">
+                    <td className="py-3 px-4 font-mono font-bold text-indigo-400">{p.paymentCode}</td>
+                    <td className="py-3 px-4">{p.durationMonths} tháng</td>
+                    <td className="py-3 px-4 font-semibold text-white">
+                      {Number(p.amount).toLocaleString('vi-VN')}đ
+                    </td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          p.status === 'PAID'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : p.status === 'PENDING'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : 'bg-rose-500/10 text-rose-400'
+                        }`}
+                      >
+                        {p.status === 'PAID' ? 'Đã thanh toán' : p.status === 'PENDING' ? 'Chờ thanh toán' : p.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      {new Date(p.createdAt).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {p.status === 'PENDING' && p.qrData && (
+                        <button
+                          onClick={() => setActivePaymentModal(p)}
+                          className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1"
+                        >
+                          <QrCode className="w-3.5 h-3.5" /> Quét QR
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* VietQR Payment Modal */}
+      {activePaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl relative">
+            <button
+              onClick={() => setActivePaymentModal(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              ✕
+            </button>
+
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 mb-2">
+              <QrCode className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-xl font-bold text-white">Quét Mã QR Chuyển Khoản</h3>
+            <p className="text-xs text-slate-400">
+              Hệ thống sẽ tự động kích hoạt bot ngay khi nhận được thanh toán trong vòng 3-5 giây
+            </p>
+
+            {activePaymentModal.qrData && (
+              <div className="p-3 bg-white rounded-xl inline-block shadow-inner mx-auto">
+                <img
+                  src={activePaymentModal.qrData}
+                  alt="VietQR Code"
+                  className="w-56 h-56 object-contain"
+                />
+              </div>
+            )}
+
+            <div className="bg-slate-800/80 p-3 rounded-xl text-left space-y-1.5 text-xs text-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Số tiền:</span>
+                <span className="font-bold text-white text-sm text-emerald-400">
+                  {Number(activePaymentModal.amount).toLocaleString('vi-VN')}đ
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Nội dung chuyển khoản (bắt buộc):</span>
+                <span className="font-mono font-bold text-amber-400">
+                  {activePaymentModal.paymentCode}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-500">
+              Sau khi chuyển khoản, trang web sẽ tự động cập nhật. Bạn cũng có thể bấm F5 để tải lại.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -19,6 +19,11 @@ import {
   ChevronRight,
   ClipboardList,
   Ticket,
+  Zap,
+  TrendingUp,
+  Store,
+  Layers,
+  Globe,
   X,
 } from 'lucide-react';
 
@@ -42,23 +47,32 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN'] },
-  { path: '/categories', label: 'Danh mục', icon: FolderTree },
-  { path: '/products', label: 'Sản phẩm', icon: Package },
-  { path: '/accounts', label: 'Nhập kho', icon: Warehouse },
+  // Super Admin Zone
+  { path: '/saas/revenue', label: 'Doanh Thu SaaS', icon: TrendingUp, roles: ['SUPER_ADMIN'] },
+  { path: '/saas/tenants', label: 'Quản Lý Shops', icon: Store, roles: ['SUPER_ADMIN'] },
+  { path: '/saas/plans', label: 'Gói Cước SaaS', icon: Layers, roles: ['SUPER_ADMIN'] },
+  { path: '/saas/platform-settings', label: 'Cấu Hình Sàn', icon: Globe, roles: ['SUPER_ADMIN'] },
+
+  // Tenant Zone
+  { path: '/dashboard', label: 'Dashboard Shop', icon: LayoutDashboard, roles: ['TENANT_ADMIN', 'ADMIN'] },
+  { path: '/subscription', label: 'Gói Cước & Gia Hạn', icon: Zap, roles: ['TENANT_ADMIN', 'ADMIN'] },
+  { path: '/categories', label: 'Danh mục', icon: FolderTree, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
+  { path: '/products', label: 'Sản phẩm', icon: Package, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
+  { path: '/accounts', label: 'Nhập kho', icon: Warehouse, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
   {
     label: 'Đơn hàng & Giao dịch',
     icon: ShoppingCart,
+    roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'],
     children: [
       { path: '/orders', label: 'Danh sách đơn hàng', icon: ClipboardList },
       { path: '/payment-events', label: 'Giao dịch chuyển khoản', icon: Receipt },
     ],
   },
-  { path: '/customers', label: 'Khách hàng', icon: Users },
-  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket, roles: ['ADMIN'] },
-  { path: '/broadcast', label: 'Phát sóng', icon: Radio, roles: ['ADMIN'] },
-  { path: '/settings', label: 'Cấu hình', icon: Settings, roles: ['ADMIN'] },
-  { path: '/admins', label: 'Quản trị viên', icon: UserCog, roles: ['ADMIN'] },
+  { path: '/customers', label: 'Khách hàng', icon: Users, roles: ['TENANT_ADMIN', 'TENANT_STAFF', 'ADMIN', 'STAFF'] },
+  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket, roles: ['TENANT_ADMIN', 'ADMIN'] },
+  { path: '/broadcast', label: 'Phát sóng', icon: Radio, roles: ['TENANT_ADMIN', 'ADMIN'] },
+  { path: '/settings', label: 'Cấu hình Bot & Shop', icon: Settings, roles: ['TENANT_ADMIN', 'ADMIN'] },
+  { path: '/admins', label: 'Nhân viên Shop', icon: UserCog, roles: ['TENANT_ADMIN', 'ADMIN'] },
   { path: '/profile', label: 'Hồ sơ cá nhân', icon: UserCircle },
 ];
 
@@ -68,13 +82,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { data: meData } = useGetMeQuery();
   const currentUser = meData || authUser;
 
-  // Kiểm tra xem hiện tại có đang ở trang đơn hàng hoặc webhook không
   const isOrderPathActive =
     location.pathname.startsWith('/orders') || location.pathname.startsWith('/payment-events');
 
   const [isOrderMenuOpen, setIsOrderMenuOpen] = useState<boolean>(isOrderPathActive);
 
-  // Tự động mở submenu nếu điều hướng tới route con
   useEffect(() => {
     if (isOrderPathActive) {
       setIsOrderMenuOpen(true);
@@ -88,9 +100,20 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       }`}
     >
       <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-          BotShop Admin
-        </h1>
+        <div>
+          <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+            BotSaaS Platform
+          </h1>
+          {currentUser?.role === 'SUPER_ADMIN' ? (
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
+              Super Admin
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              Chủ Shop
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => onClose?.()}
@@ -102,14 +125,12 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       </div>
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
-          // Check role permissions
           if (item.roles && (!currentUser || !item.roles.includes(currentUser.role))) {
             return null;
           }
 
           const Icon = item.icon;
 
-          // Nếu là menu có submenu (Đơn hàng)
           if (item.children) {
             const hasActiveChild = item.children.some((child) => location.pathname.startsWith(child.path));
 
@@ -117,10 +138,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <div key={item.label} className="space-y-1">
                 <button
                   onClick={() => setIsOrderMenuOpen(!isOrderMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${hasActiveChild
-                    ? 'bg-blue-600/10 text-blue-400 font-semibold'
-                    : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
-                    }`}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                    hasActiveChild
+                      ? 'bg-blue-600/10 text-blue-400 font-semibold'
+                      : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+                  }`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon size={20} className={hasActiveChild ? 'text-blue-400' : 'text-gray-400'} />
@@ -133,7 +155,6 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   )}
                 </button>
 
-                {/* Submenu xổ xuống */}
                 {isOrderMenuOpen && (
                   <div className="pl-6 pr-2 py-1 space-y-1 border-l-2 border-slate-800 ml-4 animate-in slide-in-from-top-2 duration-200">
                     {item.children.map((child) => {
@@ -145,10 +166,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                           key={child.path}
                           to={child.path}
                           onClick={() => onClose?.()}
-                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${isChildActive
-                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
-                            : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
-                            }`}
+                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            isChildActive
+                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
+                              : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
+                          }`}
                         >
                           <ChildIcon size={15} />
                           <span>{child.label}</span>
@@ -161,17 +183,17 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             );
           }
 
-          // Nếu là menu đơn thông thường
           const isActive = location.pathname.startsWith(item.path!);
           return (
             <Link
               key={item.path}
               to={item.path!}
               onClick={() => onClose?.()}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${isActive
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 font-semibold'
-                : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
-                }`}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
+                isActive
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 font-semibold'
+                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
+              }`}
             >
               <Icon size={20} />
               <span className="font-medium text-sm">{item.label}</span>

@@ -100,6 +100,12 @@ export const baseApi = createApi({
     'BotConfig',
     'SetupStatus',
     'Voucher',
+    'SaasPlan',
+    'SaasSubscription',
+    'SaasPayment',
+    'SaasTenant',
+    'SaasPlatformConfig',
+    'SaasSystemConfig',
   ] as const,
   endpoints: (_builder) => ({}),
 });
