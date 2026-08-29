@@ -4,6 +4,7 @@ import { useGetProductsQuery } from '../api/productApi';
 import { useGetAllWalletsQuery } from '../api/walletApi';
 import { useGetOrdersQuery } from '../api/orderApi';
 import { SetupWizard } from '../components/dashboard/SetupWizard';
+import { FeatureGate } from '../components/feature-gate';
 import {
   DollarSign,
   ShoppingCart,
@@ -258,6 +259,7 @@ export const DashboardPage = () => {
     data: productAnalytics,
     isLoading: isProductAnalyticsLoading,
     isError: isProductAnalyticsError,
+    error: productAnalyticsError,
   } = useGetProductAnalyticsQuery(
     {
       productId: selectedProductId!,
@@ -267,7 +269,12 @@ export const DashboardPage = () => {
     { skip: !selectedProductId }
   );
 
-  const { data: analytics, isLoading: isAnalyticsLoading, isError: isAnalyticsError } = useGetDashboardAnalyticsQuery({
+  const {
+    data: analytics,
+    isLoading: isAnalyticsLoading,
+    isError: isAnalyticsError,
+    error: analyticsError,
+  } = useGetDashboardAnalyticsQuery({
     start: queryRange.start,
     end: queryRange.end,
   });
@@ -472,9 +479,10 @@ export const DashboardPage = () => {
         />
       </div>
 
-      {/* Main Analytics Chart */}
-      <div className="glass p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+      {/* Main Analytics Chart & Breakdown Sections */}
+      <FeatureGate featureKey="ALLOW_ADVANCED_STATS" error={analyticsError || productAnalyticsError}>
+        <div className="glass p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Layers size={18} className="text-blue-400" />
@@ -965,6 +973,7 @@ export const DashboardPage = () => {
           </div>
         </div>
       </div>
+    </FeatureGate>
 
       {/* Đơn hàng gần đây */}
       <div className="glass p-6 rounded-2xl border border-slate-800 shadow-xl">

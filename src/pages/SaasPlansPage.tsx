@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   useGetSaasPlansAdminQuery,
+  useGetFeatureRegistryQuery,
   useCreateSaasPlanMutation,
   useUpdateSaasPlanMutation,
   SaasPlan,
@@ -10,8 +11,6 @@ import {
   Package,
   Plus,
   Edit2,
-  Check,
-  X,
   Layers,
   Bot,
   Users,
@@ -20,28 +19,32 @@ import {
   CreditCard,
   Ticket,
   Radio,
+  Wallet,
   FileSpreadsheet,
   BarChart3,
   Smile,
-  ShieldCheck,
-  ArrowRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Danh sách các tính năng chuẩn trong hệ thống để Super Admin bật/tắt theo gói
-export const AVAILABLE_FEATURES = [
-  { key: 'AUTO_SEPAY_WEBHOOK', name: 'Tự động duyệt tiền SePay 100%', icon: CreditCard, desc: 'Tự động kiểm tra và cộng tiền đơn hàng 24/7' },
-  { key: 'ALLOW_VOUCHERS', name: 'Tạo mã giảm giá (Vouchers)', icon: Ticket, desc: 'Tạo mã khuyến mãi % hoặc số tiền cố định' },
-  { key: 'ALLOW_BROADCAST', name: 'Phát sóng tin nhắn hàng loạt', icon: Radio, desc: 'Gửi thông báo đến toàn bộ khách hàng trên Bot' },
-  { key: 'ALLOW_EXPORT_EXCEL', name: 'Xuất dữ liệu ra Excel', icon: FileSpreadsheet, desc: 'Xuất kho hàng, đơn hàng và khách hàng' },
-  { key: 'ALLOW_ADVANCED_STATS', name: 'Báo cáo & Thống kê nâng cao', icon: BarChart3, desc: 'Biểu đồ tăng trưởng, khách VIP, giờ cao điểm' },
-  { key: 'ALLOW_CUSTOM_EMOJI', name: 'Tùy biến Emoji & Tin nhắn Bot', icon: Smile, desc: 'Tùy chỉnh câu chào và phong cách menu bot' },
-];
+// Ánh xạ icon cho các tính năng đã biết, có fallback an toàn
+const FEATURE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  AUTO_SEPAY_WEBHOOK: CreditCard,
+  ALLOW_VOUCHERS: Ticket,
+  ALLOW_BROADCAST: Radio,
+  ALLOW_CUSTOMER_WALLET: Wallet,
+  ALLOW_IMPORT_EXCEL: FileSpreadsheet,
+  ALLOW_ADVANCED_STATS: BarChart3,
+  ALLOW_CUSTOM_EMOJI: Smile,
+};
+const DEFAULT_FEATURE_ICON = Sparkles;
 
 export const SaasPlansPage = () => {
-  const { data: plans, isLoading, refetch } = useGetSaasPlansAdminQuery();
+  const { data: plans, isLoading: isPlansLoading, refetch } = useGetSaasPlansAdminQuery();
+  const { data: featureRegistry, isLoading: isFeaturesLoading } = useGetFeatureRegistryQuery();
   const [createPlan, { isLoading: isCreating }] = useCreateSaasPlanMutation();
   const [updatePlan, { isLoading: isUpdating }] = useUpdateSaasPlanMutation();
+
+  const isLoading = isPlansLoading || isFeaturesLoading;
 
   const { startSimulation } = useSimulation();
 
@@ -58,7 +61,7 @@ export const SaasPlansPage = () => {
       maxStaff: 2,
       maxBots: 1,
       trialDays: 0,
-      featuresJson: JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS']),
+      featuresJson: JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS', 'ALLOW_CUSTOMER_WALLET']),
       isActive: true,
       sortOrder: 1,
     });
@@ -69,9 +72,9 @@ export const SaasPlansPage = () => {
     let features = plan.featuresJson;
     if (!features) {
       if (plan.slug === 'trial') features = JSON.stringify(['AUTO_SEPAY_WEBHOOK']);
-      else if (plan.slug === 'basic') features = JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS']);
-      else if (plan.slug === 'pro') features = JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS', 'ALLOW_BROADCAST', 'ALLOW_EXPORT_EXCEL']);
-      else features = JSON.stringify(AVAILABLE_FEATURES.map((f) => f.key));
+      else if (plan.slug === 'basic') features = JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS', 'ALLOW_CUSTOMER_WALLET']);
+      else if (plan.slug === 'pro') features = JSON.stringify(['AUTO_SEPAY_WEBHOOK', 'ALLOW_VOUCHERS', 'ALLOW_BROADCAST', 'ALLOW_CUSTOMER_WALLET', 'ALLOW_IMPORT_EXCEL']);
+      else features = JSON.stringify((featureRegistry || []).map((f) => f.key));
     }
     setEditingPlan({ ...plan, featuresJson: features });
     setIsModalOpen(true);
@@ -201,7 +204,7 @@ export const SaasPlansPage = () => {
                     Tính năng đã bật:
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {AVAILABLE_FEATURES.map((f) => {
+                    {(featureRegistry || []).map((f) => {
                       const hasFeature = isFeatureEnabled(plan.featuresJson, f.key);
                       if (!hasFeature) return null;
                       return (
@@ -347,9 +350,9 @@ export const SaasPlansPage = () => {
                   🎯 Phân Quyền Tính Năng Cho Gói (Feature Matrix)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-800">
-                  {AVAILABLE_FEATURES.map((feat) => {
+                  {(featureRegistry || []).map((feat) => {
                     const checked = isFeatureEnabled(editingPlan.featuresJson, feat.key);
-                    const Icon = feat.icon;
+                    const Icon = FEATURE_ICON_MAP[feat.key] || DEFAULT_FEATURE_ICON;
                     return (
                       <label
                         key={feat.key}
@@ -371,7 +374,7 @@ export const SaasPlansPage = () => {
                             <Icon className="w-3.5 h-3.5 text-indigo-400" />
                             {feat.name}
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{feat.desc}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{feat.description}</div>
                         </div>
                       </label>
                     );

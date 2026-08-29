@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
@@ -10,14 +10,12 @@ import {
   CreditCard,
   Globe,
   Save,
-  ShieldCheck,
-  Zap,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const SaasPlatformSettingsPage = () => {
-  const { data: platformConfig, isLoading: isConfigLoading, refetch: refetchConfig } = useGetPlatformConfigQuery();
-  const { data: systemConfigs, isLoading: isSysLoading, refetch: refetchSys } = useGetSystemConfigsQuery();
+  const { data: platformConfig, refetch: refetchConfig } = useGetPlatformConfigQuery();
+  const { data: systemConfigs, refetch: refetchSys } = useGetSystemConfigsQuery();
 
   const [savePlatformConfig, { isLoading: isSavingPlatform }] = useSavePlatformConfigMutation();
   const [updateSystemConfigs, { isLoading: isSavingSys }] = useUpdateSystemConfigsMutation();

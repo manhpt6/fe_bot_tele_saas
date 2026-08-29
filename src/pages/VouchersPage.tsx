@@ -36,6 +36,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { DateTimePicker } from '../components/ui/DateTimePicker';
 import { CurrencyInput } from '../components/ui/CurrencyInput';
 import { useDebounce } from '../hooks/useDebounce';
+import { FeatureGate } from '../components/feature-gate';
 
 export const VouchersPage = () => {
   const [page, setPage] = useState(0);
@@ -293,7 +294,8 @@ export const VouchersPage = () => {
   const totalUsedSum = vouchers.reduce((acc, v) => acc + (v.usedCount || 0), 0);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <FeatureGate featureKey="ALLOW_VOUCHERS">
+      <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -980,6 +982,7 @@ export const VouchersPage = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </FeatureGate>
   );
 };

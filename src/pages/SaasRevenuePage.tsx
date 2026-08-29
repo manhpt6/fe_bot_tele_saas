@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGetSaasRevenueQuery } from '../api/saasApi';
 import {
   TrendingUp,

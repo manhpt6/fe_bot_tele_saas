@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSimulation } from '../../context/SimulationContext';
 import { useGetPublicPlansQuery } from '../../api/saasApi';
-import { Gamepad2, X, Sparkles, RefreshCw, Layers, ShieldCheck } from 'lucide-react';
+import { Gamepad2, X } from 'lucide-react';
 
 export const PlanSimulationBanner: React.FC = () => {
   const { isSimulating, simulatedPlan, stopSimulation, switchSimulatedPlan } = useSimulation();

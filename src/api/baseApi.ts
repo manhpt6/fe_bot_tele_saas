@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import { tokenRefreshed, logout } from '../store/authSlice';
+import { tokenRefreshed, logout, setLockedFeatureKey } from '../store/authSlice';
 import { Mutex } from 'async-mutex';
 
 const mutex = new Mutex();
@@ -30,6 +30,15 @@ const customBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryEr
   // Phân biệt request auth (login, refresh, forgot-password) với request bình thường
   const requestUrl = typeof args === 'string' ? args : args.url;
   const isAuthRequest = requestUrl.includes('/auth/');
+
+  // ===== BẮT LỖI 403 TÍNH NĂNG BỊ KHÓA DO GÓI CƯỚC (Global Feature Interceptor) =====
+  if (result.error && result.error.status === 403) {
+    const errData = result.error.data as any;
+    const featureKey = errData?.data?.featureKey || errData?.featureKey;
+    if (featureKey) {
+      api.dispatch(setLockedFeatureKey(featureKey));
+    }
+  }
 
   // ===== SILENT REFRESH: Tự động làm mới khi Access Token hết hạn =====
   if (result.error && result.error.status === 401 && !isAuthRequest) {

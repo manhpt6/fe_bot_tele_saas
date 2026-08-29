@@ -1,5 +1,11 @@
 import { baseApi } from './baseApi';
 
+export interface FeatureDefinition {
+  key: string;
+  name: string;
+  description: string;
+}
+
 export interface SaasPlan {
   id: number;
   name: string;
@@ -28,6 +34,7 @@ export interface SaasSubscriptionDto {
   daysRemaining: number;
   isBotRunning: boolean;
   plan?: SaasPlan;
+  features?: string[];
 }
 
 export interface SaasPayment {
@@ -87,6 +94,11 @@ export const saasApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPublicPlans: builder.query<SaasPlan[], void>({
       query: () => '/saas/plans',
+      providesTags: ['SaasPlan'],
+    }),
+
+    getFeatureRegistry: builder.query<FeatureDefinition[], void>({
+      query: () => '/saas/plans/features',
       providesTags: ['SaasPlan'],
     }),
 
@@ -199,6 +211,7 @@ export const saasApi = baseApi.injectEndpoints({
 
 export const {
   useGetPublicPlansQuery,
+  useGetFeatureRegistryQuery,
   useGetMySubscriptionQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,

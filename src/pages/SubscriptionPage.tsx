@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   useGetMySubscriptionQuery,
   useGetPublicPlansQuery,
+  useGetFeatureRegistryQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,
   SaasPlan,
@@ -11,11 +12,8 @@ import {
   Zap,
   CheckCircle2,
   Calendar,
-  CreditCard,
   History,
   QrCode,
-  AlertTriangle,
-  Sparkles,
   Bot,
   Package,
   Users,
@@ -25,6 +23,7 @@ import toast from 'react-hot-toast';
 export const SubscriptionPage = () => {
   const { data: sub, isLoading: isSubLoading, refetch: refetchSub } = useGetMySubscriptionQuery();
   const { data: plans, isLoading: isPlansLoading } = useGetPublicPlansQuery();
+  const { data: featureRegistry } = useGetFeatureRegistryQuery();
   const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery();
 
   const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
@@ -199,13 +198,7 @@ export const SubscriptionPage = () => {
 
                   {/* Feature Matrix dynamic checklist */}
                   <div className="mt-3 space-y-2">
-                    {[
-                      { key: 'AUTO_SEPAY_WEBHOOK', name: 'Tự động duyệt tiền SePay 100%' },
-                      { key: 'ALLOW_VOUCHERS', name: 'Mã giảm giá khuyến mãi' },
-                      { key: 'ALLOW_BROADCAST', name: 'Phát sóng tin nhắn Bot' },
-                      { key: 'ALLOW_EXPORT_EXCEL', name: 'Xuất dữ liệu ra Excel' },
-                      { key: 'ALLOW_ADVANCED_STATS', name: 'Báo cáo chuyên sâu' },
-                    ].map((feat) => {
+                    {(featureRegistry || []).map((feat) => {
                       let hasFeat = false;
                       try {
                         const list = plan.featuresJson ? JSON.parse(plan.featuresJson) : [];

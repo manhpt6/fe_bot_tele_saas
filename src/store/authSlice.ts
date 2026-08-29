@@ -5,6 +5,7 @@ interface AuthState {
   refreshToken: string | null;
   user: any | null;
   isAuthenticated: boolean;
+  lockedFeatureKey: string | null;
 }
 
 const savedToken = localStorage.getItem('token');
@@ -28,6 +29,7 @@ const initialState: AuthState = {
   refreshToken: isValidToken ? savedRefreshToken : null,
   user: isValidToken ? getSavedUser() : null,
   isAuthenticated: !!isValidToken,
+  lockedFeatureKey: null,
 };
 
 const authSlice = createSlice({
@@ -42,6 +44,9 @@ const authSlice = createSlice({
       localStorage.setItem('token', action.payload.token);
       localStorage.setItem('refreshToken', action.payload.refreshToken);
       localStorage.setItem('user', JSON.stringify(action.payload.user));
+      if (action.payload.user?.role !== 'SUPER_ADMIN') {
+        localStorage.removeItem('saas_simulated_plan');
+      }
     },
     tokenRefreshed: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
@@ -52,12 +57,17 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.user = null;
       state.isAuthenticated = false;
+      state.lockedFeatureKey = null;
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('saas_simulated_plan');
+    },
+    setLockedFeatureKey: (state, action: PayloadAction<string | null>) => {
+      state.lockedFeatureKey = action.payload;
     },
   },
 });
 
-export const { loginSuccess, tokenRefreshed, logout } = authSlice.actions;
+export const { loginSuccess, tokenRefreshed, logout, setLockedFeatureKey } = authSlice.actions;
 export default authSlice.reducer;

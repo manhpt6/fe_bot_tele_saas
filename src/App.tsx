@@ -23,9 +23,11 @@ import { AdminsPage } from './pages/AdminsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { VouchersPage } from './pages/VouchersPage';
 
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from './store/store';
+import { setLockedFeatureKey } from './store/authSlice';
 import { useGetMeQuery } from './api/userApi';
+import { FeatureUpgradeModal } from './components/ui/FeatureUpgradeModal';
 
 import { SimulationProvider } from './context/SimulationContext';
 
@@ -43,47 +45,61 @@ const RootRedirect = () => {
   return <Navigate to="/orders" replace />;
 };
 
+const GlobalFeatureModal = () => {
+  const dispatch = useDispatch();
+  const lockedFeatureKey = useSelector((state: RootState) => state.auth.lockedFeatureKey);
+
+  return (
+    <FeatureUpgradeModal
+      isOpen={Boolean(lockedFeatureKey)}
+      onClose={() => dispatch(setLockedFeatureKey(null))}
+      featureKey={lockedFeatureKey}
+    />
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
       <SimulationProvider>
         <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AdminLayout />}>
-            <Route path="/" element={<RootRedirect />} />
-            
-            {/* Super Admin Routes */}
-            <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
-              <Route path="/saas/revenue" element={<SaasRevenuePage />} />
-              <Route path="/saas/tenants" element={<SaasTenantsPage />} />
-              <Route path="/saas/plans" element={<SaasPlansPage />} />
-              <Route path="/saas/platform-settings" element={<SaasPlatformSettingsPage />} />
-            </Route>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/" element={<RootRedirect />} />
+              
+              {/* Super Admin Routes */}
+              <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>
+                <Route path="/saas/revenue" element={<SaasRevenuePage />} />
+                <Route path="/saas/tenants" element={<SaasTenantsPage />} />
+                <Route path="/saas/plans" element={<SaasPlansPage />} />
+                <Route path="/saas/platform-settings" element={<SaasPlatformSettingsPage />} />
+              </Route>
 
-            {/* Tenant Shared Routes */}
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/accounts" element={<AccountsPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/payment-events" element={<PaymentEventsPage />} />
-            <Route path="/customers" element={<CustomersPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/subscription" element={<SubscriptionPage />} />
-            
-            {/* Tenant Admin Routes */}
-            <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN']} />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/vouchers" element={<VouchersPage />} />
-              <Route path="/broadcast" element={<BroadcastPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/admins" element={<AdminsPage />} />
+              {/* Tenant Shared Routes */}
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/payment-events" element={<PaymentEventsPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/subscription" element={<SubscriptionPage />} />
+              
+              {/* Tenant Admin Routes */}
+              <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN']} />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/vouchers" element={<VouchersPage />} />
+                <Route path="/broadcast" element={<BroadcastPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/admins" element={<AdminsPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-      </Routes>
+        </Routes>
+        <GlobalFeatureModal />
       </SimulationProvider>
       <Toaster 
         position="top-right" 

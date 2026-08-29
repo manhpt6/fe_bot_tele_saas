@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
-import { Users, Upload, Trash2, Search, Filter, Eye, X, RotateCcw, ChevronDown, ShieldCheck } from 'lucide-react';
+import { Users, Upload, Trash2, Search, Filter, Eye, X, RotateCcw, ChevronDown, ShieldCheck, Gem } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
+import { useFeatureGuard } from '../hooks/use-feature-guard';
+import { FeatureUpgradeModal } from '../components/ui/FeatureUpgradeModal';
 
 export const AccountsPage = () => {
+  const { hasFeature } = useFeatureGuard();
+  const [lockedFeatureModal, setLockedFeatureModal] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const productIdFromUrl = searchParams.get('productId');
 
@@ -486,10 +490,26 @@ export const AccountsPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setImportMode('EXCEL')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${importMode === 'EXCEL' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                  onClick={() => {
+                    if (!hasFeature('ALLOW_IMPORT_EXCEL')) {
+                      setLockedFeatureModal('ALLOW_IMPORT_EXCEL');
+                      return;
+                    }
+                    setImportMode('EXCEL');
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                    importMode === 'EXCEL'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
                 >
-                  Nạp từ file Excel
+                  <span>Nạp từ file Excel</span>
+                  {!hasFeature('ALLOW_IMPORT_EXCEL') && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
+                      <Gem size={10} className="text-cyan-300 animate-pulse" />
+                      PRO
+                    </span>
+                  )}
                 </button>
               </div>
             )}
@@ -750,6 +770,13 @@ export const AccountsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Feature Upgrade Modal */}
+      <FeatureUpgradeModal
+        isOpen={Boolean(lockedFeatureModal)}
+        onClose={() => setLockedFeatureModal(null)}
+        featureKey={lockedFeatureModal}
+      />
     </div>
   );
 };

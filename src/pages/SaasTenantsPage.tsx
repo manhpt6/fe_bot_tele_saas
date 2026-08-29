@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   useGetSaasTenantsQuery,
   useUpdateTenantStatusMutation,
@@ -8,14 +8,10 @@ import {
 } from '../api/saasApi';
 import {
   Store,
-  Bot,
   Search,
   CheckCircle,
-  XCircle,
   AlertOctagon,
   CalendarPlus,
-  Package,
-  ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -23,7 +19,7 @@ export const SaasTenantsPage = () => {
   const { data: tenants, isLoading, refetch } = useGetSaasTenantsQuery();
   const { data: plans } = useGetPublicPlansQuery();
 
-  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateTenantStatusMutation();
+  const [updateStatus] = useUpdateTenantStatusMutation();
   const [extendSub, { isLoading: isExtending }] = useExtendTenantSubscriptionMutation();
 
   const [searchTerm, setSearchTerm] = useState('');

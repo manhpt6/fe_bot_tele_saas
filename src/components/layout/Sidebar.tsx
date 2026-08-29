@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store/store';
+import { setLockedFeatureKey } from '../../store/authSlice';
 import { useGetMeQuery } from '../../api/userApi';
 import { useSimulation } from '../../context/SimulationContext';
+import { useFeatureGuard } from '../../hooks/use-feature-guard';
 import {
   LayoutDashboard,
   Package,
@@ -27,6 +29,7 @@ import {
   Globe,
   X,
   Gamepad2,
+  Gem,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,12 +41,14 @@ interface SubNavItem {
   path: string;
   label: string;
   icon: any;
+  featureKey?: string;
 }
 
 interface NavItem {
   path?: string;
   label: string;
   icon: any;
+  featureKey?: string;
   children?: SubNavItem[];
 }
 
@@ -71,19 +76,22 @@ const tenantNavItems: NavItem[] = [
     ],
   },
   { path: '/customers', label: 'Khách hàng', icon: Users },
-  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket },
-  { path: '/broadcast', label: 'Phát sóng', icon: Radio },
+  { path: '/vouchers', label: 'Mã giảm giá', icon: Ticket, featureKey: 'ALLOW_VOUCHERS' },
+  { path: '/broadcast', label: 'Phát sóng', icon: Radio, featureKey: 'ALLOW_BROADCAST' },
   { path: '/settings', label: 'Cấu hình Bot & Shop', icon: Settings },
   { path: '/admins', label: 'Nhân viên Shop', icon: UserCog },
 ];
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const dispatch = useDispatch();
   const authUser = useSelector((state: RootState) => state.auth.user);
   const { data: meData } = useGetMeQuery();
   const currentUser = meData || authUser;
 
   const { isSimulating, simulatedPlan } = useSimulation();
+  const { hasFeature } = useFeatureGuard();
+
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
 
   // Khi đang mô phỏng HOẶC khi là Chủ shop thật -> dùng menu Shop
@@ -138,7 +146,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </button>
       </div>
 
-      {/* Navigation List (SẠCH SẼ - KHÔNG TRỘN LẪN) */}
+      {/* Navigation List */}
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
         {currentNavItems.map((item) => {
           const Icon = item.icon;
@@ -172,20 +180,36 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;
                       const isChildActive = location.pathname.startsWith(child.path);
+                      const isChildLocked = child.featureKey && isViewingTenant ? !hasFeature(child.featureKey) : false;
 
                       return (
                         <Link
                           key={child.path}
-                          to={child.path}
-                          onClick={() => onClose?.()}
-                          className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          to={isChildLocked ? '#' : child.path}
+                          onClick={(e) => {
+                            if (isChildLocked) {
+                              e.preventDefault();
+                              dispatch(setLockedFeatureKey(child.featureKey!));
+                              return;
+                            }
+                            onClose?.();
+                          }}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                             isChildActive
                               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
                               : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-200'
                           }`}
                         >
-                          <ChildIcon size={14} />
-                          <span>{child.label}</span>
+                          <div className="flex items-center space-x-2.5">
+                            <ChildIcon size={14} />
+                            <span>{child.label}</span>
+                          </div>
+                          {isChildLocked && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-black tracking-wider shadow-sm shadow-cyan-500/20">
+                              <Gem size={10} className="text-cyan-300 animate-pulse" />
+                              <span>PRO</span>
+                            </span>
+                          )}
                         </Link>
                       );
                     })}
@@ -195,20 +219,41 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             );
           }
 
+          const isLocked = item.featureKey && isViewingTenant ? !hasFeature(item.featureKey) : false;
           const isActive = location.pathname.startsWith(item.path!);
+
           return (
             <Link
               key={item.path}
-              to={item.path!}
-              onClick={() => onClose?.()}
-              className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition-all ${
+              to={isLocked ? '#' : item.path!}
+              onClick={(e) => {
+                if (isLocked) {
+                  e.preventDefault();
+                  dispatch(setLockedFeatureKey(item.featureKey!));
+                  return;
+                }
+                onClose?.();
+              }}
+              className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all ${
                 isActive
                   ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 font-semibold'
+                  : isLocked
+                  ? 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
               }`}
             >
-              <Icon size={18} />
-              <span className="font-medium text-sm">{item.label}</span>
+              <div className="flex items-center space-x-3">
+                <Icon size={18} />
+                <span className="font-medium text-sm">{item.label}</span>
+              </div>
+
+              {/* Huy hiệu Kim Cương 💎 cho tính năng chưa mở khóa */}
+              {isLocked && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-black tracking-wider shadow-sm shadow-cyan-500/20">
+                  <Gem size={11} className="text-cyan-300 animate-pulse" />
+                  <span>PRO</span>
+                </span>
+              )}
             </Link>
           );
         })}
