@@ -193,20 +193,6 @@ export const saasApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['SaasPlatformConfig'],
     }),
-
-    getSystemConfigs: builder.query<Record<string, string>, void>({
-      query: () => '/admin/saas/system-config',
-      providesTags: ['SaasSystemConfig'],
-    }),
-
-    updateSystemConfigs: builder.mutation<any, Record<string, string>>({
-      query: (body) => ({
-        url: '/admin/saas/system-config',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['SaasSystemConfig'],
-    }),
   }),
 });
 
@@ -226,6 +212,4 @@ export const {
   useGetSaasRevenueQuery,
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
-  useGetSystemConfigsQuery,
-  useUpdateSystemConfigsMutation,
 } = saasApi;

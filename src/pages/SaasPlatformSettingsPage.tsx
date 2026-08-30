@@ -2,13 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import {
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
-  useGetSystemConfigsQuery,
-  useUpdateSystemConfigsMutation,
 } from '../api/saasApi';
 import {
   Settings,
   CreditCard,
-  Globe,
   Save,
   Search,
   ChevronDown,
@@ -29,10 +26,7 @@ import toast from 'react-hot-toast';
 
 export const SaasPlatformSettingsPage = () => {
   const { data: platformConfig, refetch: refetchConfig } = useGetPlatformConfigQuery();
-  const { data: systemConfigs, refetch: refetchSys } = useGetSystemConfigsQuery();
-
   const [savePlatformConfig, { isLoading: isSavingPlatform }] = useSavePlatformConfigMutation();
-  const [updateSystemConfigs, { isLoading: isSavingSys }] = useUpdateSystemConfigsMutation();
 
   const [formData, setFormData] = useState({
     bankName: 'MBBank',
@@ -44,13 +38,9 @@ export const SaasPlatformSettingsPage = () => {
     isActive: true,
   });
 
-  const [sysFormData, setSysFormData] = useState({
-    WEBHOOK_BASE_URL: 'https://api.yourdomain.com',
-    BOT_DEFAULT_MODE: 'WEBHOOK',
-  });
-
-  // SePay Webhook URL theo domain cấu hình hệ thống do chủ sàn nhập
-  const sepayWebhookUrl = `${(sysFormData.WEBHOOK_BASE_URL || 'https://api.yourdomain.com').replace(/\/+$/, '')}/api/webhook/saas-payment`;
+  // SePay Webhook URL của Sàn (tự động nhận diện theo domain frontend/backend)
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || window.location.origin).replace(/\/+$/, '');
+  const sepayWebhookUrl = `${apiBaseUrl}/api/webhook/saas-payment`;
 
   // UI state
   const [isCopiedWebhook, setIsCopiedWebhook] = useState(false);
@@ -104,15 +94,6 @@ export const SaasPlatformSettingsPage = () => {
     }
   }, [platformConfig]);
 
-  useEffect(() => {
-    if (systemConfigs) {
-      setSysFormData({
-        WEBHOOK_BASE_URL: systemConfigs.WEBHOOK_BASE_URL || 'https://api.yourdomain.com',
-        BOT_DEFAULT_MODE: systemConfigs.BOT_DEFAULT_MODE || 'WEBHOOK',
-      });
-    }
-  }, [systemConfigs]);
-
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(sepayWebhookUrl);
     setIsCopiedWebhook(true);
@@ -151,25 +132,14 @@ export const SaasPlatformSettingsPage = () => {
     }
   };
 
-  const handleSysSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await updateSystemConfigs(sysFormData).unwrap();
-      toast.success('Cập nhật thông số hệ thống thành công!');
-      refetchSys();
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Không thể lưu cấu hình hệ thống');
-    }
-  };
-
   return (
     <div className="space-y-8 max-w-6xl">
       <div>
         <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-          <Settings className="w-7 h-7 text-indigo-400" /> Cấu Hình Nền Tảng & Cổng Thanh Toán Sàn
+          <Settings className="w-7 h-7 text-indigo-400" /> Cấu Hình Cổng Thanh Toán Sàn (SePay)
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          Thiết lập tài khoản ngân hàng nhận tiền thuê bot từ các Shop và Domain Webhook Telegram
+          Thiết lập tài khoản ngân hàng và SePay API Key nhận tiền thuê bot từ các Shop
         </p>
       </div>
 
@@ -419,61 +389,6 @@ export const SaasPlatformSettingsPage = () => {
             )}
           </div>
         </div>
-      </div>
-
-      {/* 2. System Config */}
-      <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Globe className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-bold text-white">Thông Số Hệ Thống & Webhook Telegram</h2>
-        </div>
-
-        <form onSubmit={handleSysSubmit} className="space-y-4 text-sm">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Public Base Webhook URL (Bắt buộc HTTPS)
-            </label>
-            <input
-              type="url"
-              value={sysFormData.WEBHOOK_BASE_URL}
-              onChange={(e) =>
-                setSysFormData((prev) => ({ ...prev, WEBHOOK_BASE_URL: e.target.value }))
-              }
-              placeholder="https://api.yourdomain.com"
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              required
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Domain công khai để Telegram gửi webhook update vào: <code>{(sysFormData.WEBHOOK_BASE_URL || 'https://api.yourdomain.com').replace(/\/+$/, '')}/api/webhook/telegram/&#123;botUsername&#125;</code>
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Chế độ chạy mặc định khi bot mới kết nối
-            </label>
-            <select
-              value={sysFormData.BOT_DEFAULT_MODE}
-              onChange={(e) =>
-                setSysFormData((prev) => ({ ...prev, BOT_DEFAULT_MODE: e.target.value }))
-              }
-              className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            >
-              <option value="WEBHOOK">WEBHOOK (Khuyên dùng khi chạy Production)</option>
-              <option value="LONG_POLLING">LONG POLLING (Dành cho Local Dev)</option>
-            </select>
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isSavingSys}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/25 transition-all"
-            >
-              <Save className="w-4 h-4" /> Lưu Cấu Hình Hệ Thống
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* MODAL XÁC THỰC MẬT KHẨU ADMIN */}
