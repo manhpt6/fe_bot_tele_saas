@@ -45,18 +45,12 @@ export const SaasPlatformSettingsPage = () => {
   });
 
   const [sysFormData, setSysFormData] = useState({
-    WEBHOOK_BASE_URL: '',
+    WEBHOOK_BASE_URL: 'https://api.yourdomain.com',
     BOT_DEFAULT_MODE: 'WEBHOOK',
   });
 
-  // Dynamic Backend URL & SePay Webhook URL
-  const backendOrigin = typeof window !== 'undefined'
-    ? (import.meta.env.VITE_API_BASE_URL
-        ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '')
-        : window.location.origin)
-    : 'http://localhost:8080';
-
-  const sepayWebhookUrl = `${backendOrigin}/api/webhook/saas-payment`;
+  // SePay Webhook URL theo domain cấu hình hệ thống do chủ sàn nhập
+  const sepayWebhookUrl = `${(sysFormData.WEBHOOK_BASE_URL || 'https://api.yourdomain.com').replace(/\/+$/, '')}/api/webhook/saas-payment`;
 
   // UI state
   const [isCopiedWebhook, setIsCopiedWebhook] = useState(false);
@@ -113,16 +107,11 @@ export const SaasPlatformSettingsPage = () => {
   useEffect(() => {
     if (systemConfigs) {
       setSysFormData({
-        WEBHOOK_BASE_URL: systemConfigs.WEBHOOK_BASE_URL || backendOrigin,
+        WEBHOOK_BASE_URL: systemConfigs.WEBHOOK_BASE_URL || 'https://api.yourdomain.com',
         BOT_DEFAULT_MODE: systemConfigs.BOT_DEFAULT_MODE || 'WEBHOOK',
       });
-    } else {
-      setSysFormData((prev) => ({
-        ...prev,
-        WEBHOOK_BASE_URL: prev.WEBHOOK_BASE_URL || backendOrigin,
-      }));
     }
-  }, [systemConfigs, backendOrigin]);
+  }, [systemConfigs]);
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(sepayWebhookUrl);
@@ -450,12 +439,12 @@ export const SaasPlatformSettingsPage = () => {
               onChange={(e) =>
                 setSysFormData((prev) => ({ ...prev, WEBHOOK_BASE_URL: e.target.value }))
               }
-              placeholder={backendOrigin}
+              placeholder="https://api.yourdomain.com"
               className="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               required
             />
             <p className="text-xs text-slate-500 mt-1">
-              Domain công khai để Telegram gửi webhook update vào: <code>{sysFormData.WEBHOOK_BASE_URL || backendOrigin}/api/webhook/telegram/&#123;botUsername&#125;</code>
+              Domain công khai để Telegram gửi webhook update vào: <code>{(sysFormData.WEBHOOK_BASE_URL || 'https://api.yourdomain.com').replace(/\/+$/, '')}/api/webhook/telegram/&#123;botUsername&#125;</code>
             </p>
           </div>
 
