@@ -88,6 +88,7 @@ export interface SaasPlatformConfig {
   webhookProvider: string;
   webhookApiKey?: string;
   isActive: boolean;
+  adminPassword?: string;
 }
 
 export const saasApi = baseApi.injectEndpoints({
