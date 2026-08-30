@@ -68,7 +68,7 @@ export const AdminsPage = () => {
     password: '',
     fullName: '',
     email: '',
-    role: 'STAFF',
+    role: 'TENANT_STAFF' as any,
     isActive: true,
     phoneNumber: '',
     zalo: '',
@@ -80,18 +80,18 @@ export const AdminsPage = () => {
 
   const currentUser = meData;
 
-  const isCreatingAdmin = !editingUser && formData.role === 'ADMIN';
-  const isPromotingToAdmin = Boolean(editingUser && editingUser.role !== 'ADMIN' && formData.role === 'ADMIN');
+  const isCreatingAdmin = !editingUser && (formData.role === 'ADMIN' || formData.role === 'TENANT_ADMIN');
+  const isPromotingToAdmin = Boolean(editingUser && editingUser.role !== 'ADMIN' && editingUser.role !== 'TENANT_ADMIN' && (formData.role === 'ADMIN' || formData.role === 'TENANT_ADMIN'));
   const isResettingPassword = Boolean(editingUser && formData.password.trim() !== '');
   const isSensitiveAction = isCreatingAdmin || isPromotingToAdmin || isResettingPassword;
 
   // Access Control
-  if (currentUser?.role !== 'ADMIN') {
+  if (currentUser?.role !== 'ADMIN' && currentUser?.role !== 'TENANT_ADMIN' && currentUser?.role !== 'SUPER_ADMIN') {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-400 p-10 text-center animate-in fade-in zoom-in duration-300">
         <ShieldAlert size={64} className="text-red-400/50 mb-4" />
         <h2 className="text-2xl font-bold text-white mb-2">Truy cập bị từ chối</h2>
-        <p>Bạn không có quyền truy cập vào trang Quản lý Admin.</p>
+        <p>Bạn không có quyền truy cập vào trang Quản lý Nhân viên.</p>
       </div>
     );
   }
@@ -120,7 +120,7 @@ export const AdminsPage = () => {
         password: '',
         fullName: '',
         email: '',
-        role: 'STAFF',
+        role: 'TENANT_STAFF',
         isActive: true,
         phoneNumber: '',
         zalo: '',
@@ -180,7 +180,7 @@ export const AdminsPage = () => {
   };
 
   const handleToggleActive = async (user: any) => {
-    if (user.id === 1) {
+    if (user.role === 'SUPER_ADMIN' || user.id === 1) {
       toast.error('Không thể khóa SUPER ADMIN!');
       return;
     }
@@ -188,8 +188,8 @@ export const AdminsPage = () => {
       toast.error('Bạn không thể tự khóa chính mình!');
       return;
     }
-    if (currentUser?.id !== 1 && user.role === 'ADMIN') {
-      toast.error('Bạn không có quyền khóa ADMIN khác!');
+    if (currentUser?.role === 'TENANT_ADMIN' && (user.role === 'TENANT_ADMIN' || user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) {
+      toast.error('Bạn không có quyền khóa Quản trị viên khác!');
       return;
     }
 
@@ -393,12 +393,13 @@ export const AdminsPage = () => {
                     <td className="p-4 text-gray-300 font-medium">{user.fullName}</td>
                     <td className="p-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center w-fit gap-1 ${
-                        user.id === 1 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                        user.role === 'ADMIN' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                        (user.role === 'SUPER_ADMIN' || user.id === 1) ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                        (user.role === 'TENANT_ADMIN' || user.role === 'ADMIN') ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
                         'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                       }`}>
                         <Shield size={12} />
-                        {user.id === 1 ? 'SUPER ADMIN' : user.role}
+                        {user.role === 'SUPER_ADMIN' || user.id === 1 ? 'SUPER ADMIN' :
+                         (user.role === 'TENANT_ADMIN' || user.role === 'ADMIN') ? 'Chủ Shop' : 'Nhân viên'}
                       </span>
                     </td>
                     <td className="p-4">
@@ -666,19 +667,21 @@ export const AdminsPage = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-1">Vai trò</label>
                   <select
                     value={formData.role}
-                    disabled={editingUser?.id === 1}
+                    disabled={editingUser?.id === 1 || editingUser?.role === 'SUPER_ADMIN'}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                   >
-                    <option value="STAFF">STAFF (Nhân viên)</option>
-                    <option value="ADMIN">ADMIN (Quản trị viên)</option>
+                    <option value="TENANT_STAFF">Nhân viên (TENANT_STAFF)</option>
+                    {currentUser?.role === 'SUPER_ADMIN' && (
+                      <option value="TENANT_ADMIN">Chủ Shop (TENANT_ADMIN)</option>
+                    )}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Trạng thái</label>
                   <select
                     value={formData.isActive ? 'true' : 'false'}
-                    disabled={editingUser?.id === 1}
+                    disabled={editingUser?.id === 1 || editingUser?.role === 'SUPER_ADMIN'}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-blue-500 disabled:opacity-50"
                   >
@@ -715,8 +718,8 @@ export const AdminsPage = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-amber-200/80 leading-relaxed">
-                    {isCreatingAdmin && "Bắt buộc xác thực mật khẩu Super Admin khi tạo tài khoản ADMIN mới."}
-                    {isPromotingToAdmin && "Bắt buộc xác thực mật khẩu khi nâng quyền nhân viên lên ADMIN."}
+                    {isCreatingAdmin && "Bắt buộc xác thực mật khẩu khi tạo tài khoản Quản trị mới."}
+                    {isPromotingToAdmin && "Bắt buộc xác thực mật khẩu khi nâng quyền nhân viên lên Quản trị."}
                     {isResettingPassword && !isPromotingToAdmin && "Bắt buộc xác thực mật khẩu khi đặt lại mật khẩu cho tài khoản này."}
                   </p>
                 </div>

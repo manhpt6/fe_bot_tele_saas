@@ -1,12 +1,14 @@
 import { baseApi } from './baseApi';
 import { PageResponse } from '../types/pagination';
 
+export type UserRole = 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'TENANT_STAFF' | 'ADMIN' | 'STAFF';
+
 export interface User {
   id: number;
   username: string;
   fullName: string;
   email: string;
-  role: 'ADMIN' | 'STAFF';
+  role: UserRole;
   isActive: boolean;
   isDeleted?: boolean;
   deletedAt?: string;
@@ -33,7 +35,7 @@ export interface UserCreateRequest {
   password?: string;
   fullName: string;
   email?: string;
-  role: 'ADMIN' | 'STAFF';
+  role: UserRole;
   phoneNumber?: string;
   zalo?: string;
   telegramUsername?: string;
@@ -44,7 +46,7 @@ export interface UserCreateRequest {
 export interface UserUpdateRequest {
   fullName: string;
   email?: string;
-  role: 'ADMIN' | 'STAFF';
+  role: UserRole;
   isActive: boolean;
   newPassword?: string;
   telegramChatId?: string;

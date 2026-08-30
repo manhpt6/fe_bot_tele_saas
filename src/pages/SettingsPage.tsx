@@ -43,9 +43,12 @@ import {
 import toast from 'react-hot-toast';
 import { PaymentConfigSaveRequest, BotMode, BotConfigSaveRequest } from '../types';
 import { ConnectBotModal } from '../components/bot/ConnectBotModal';
+import { useFeatureGuard } from '../hooks/use-feature-guard';
 
 export const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState<'BOT' | 'PAYMENT'>('BOT');
+  const { hasFeature } = useFeatureGuard();
+  const canUseSepay = hasFeature('AUTO_SEPAY_WEBHOOK');
 
   // ==================== BOT CONFIG STATE ====================
   const { data: botConfig, isLoading: isBotLoading } = useGetActiveBotConfigQuery();
@@ -691,7 +694,14 @@ export const SettingsPage = () => {
                         <Zap size={18} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-white">Cổng Thanh toán Tự động (SePay Webhook)</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-white">Cổng Thanh toán Tự động (SePay Webhook)</h4>
+                          {!canUseSepay && (
+                            <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                              Cần nâng cấp gói
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-400">Tích hợp SePay tự động đối soát và giao hàng</p>
                       </div>
                     </div>
@@ -702,20 +712,35 @@ export const SettingsPage = () => {
 
                   {isWebhookConfigOpen && (
                     <div className="p-4 space-y-4 border-t border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {!canUseSepay && (
+                        <div className="bg-amber-950/30 border border-amber-800/40 rounded-xl p-3 text-xs text-amber-300 flex items-start gap-2.5">
+                          <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-amber-200">Tính năng Tự động duyệt tiền SePay chưa được kích hoạt</p>
+                            <p className="text-amber-300/80 mt-0.5">
+                              Gói cước hiện tại của bạn chưa hỗ trợ Webhook SePay. Bạn vẫn có thể nhập Số tài khoản ngân hàng ở mục trên để nhận chuyển khoản và duyệt đơn thủ công.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-xs font-semibold text-slate-300 mb-1">Cổng thanh toán tự động</label>
                         <select
                           name="webhookProvider"
                           value={paymentFormData.webhookProvider}
                           onChange={handlePaymentChange}
-                          className="w-full bg-slate-800/80 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm mb-2"
+                          disabled={!canUseSepay}
+                          className={`w-full bg-slate-800/80 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-2 ${!canUseSepay ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <option value="NONE">Tắt (Admin tự kiểm tra và duyệt đơn thủ công)</option>
-                          <option value="SEPAY">SePay (sepay.vn) - Tự động đối soát & giao hàng</option>
+                          <option value="SEPAY" disabled={!canUseSepay}>
+                            SePay (sepay.vn) - Tự động đối soát & giao hàng {!canUseSepay ? '(Khóa)' : ''}
+                          </option>
                         </select>
                       </div>
 
-                      {paymentFormData.webhookProvider === 'SEPAY' && (
+                      {paymentFormData.webhookProvider === 'SEPAY' && canUseSepay && (
                         <div className="space-y-4 pt-3 border-t border-slate-800 animate-in fade-in slide-in-from-top-2 duration-200">
                           <div>
                             <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
