@@ -38,9 +38,12 @@ export const SaasPlatformSettingsPage = () => {
     isActive: true,
   });
 
-  // SePay Webhook URL của Sàn (tự động nhận diện theo domain frontend/backend)
-  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || window.location.origin).replace(/\/+$/, '');
-  const sepayWebhookUrl = `${apiBaseUrl}/api/webhook/saas-payment`;
+  // SePay Webhook URL của Sàn (tự động nhận diện và cắt bỏ prefix api/v... nếu có)
+  const sepayWebhookUrl = typeof window !== 'undefined'
+    ? (import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v\d+\/?$/, '') + '/api/webhook/saas-payment'
+        : `${window.location.origin}/api/webhook/saas-payment`)
+    : 'http://localhost:8080/api/webhook/saas-payment';
 
   // UI state
   const [isCopiedWebhook, setIsCopiedWebhook] = useState(false);

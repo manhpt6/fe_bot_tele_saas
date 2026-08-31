@@ -192,7 +192,7 @@ export const SettingsPage = () => {
   const sepayWebhookUrl = webhookInfo?.sepayWebhookUrl || (
     typeof window !== 'undefined'
       ? (import.meta.env.VITE_API_BASE_URL
-          ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '') + '/api/webhook/sepay'
+          ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v\d+\/?$/, '') + '/api/webhook/sepay'
           : `${window.location.origin}/api/webhook/sepay`)
       : 'http://localhost:8080/api/webhook/sepay'
   );
