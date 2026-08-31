@@ -5,6 +5,7 @@ import {
   useGetFeatureRegistryQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,
+  useCancelMyPaymentMutation,
   SaasPlan,
   SaasPayment,
 } from '../api/saasApi';
@@ -31,10 +32,21 @@ export const SubscriptionPage = () => {
   const [activePaymentModal, setActivePaymentModal] = useState<SaasPayment | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<Record<number, number>>({});
   const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
+  const [cancelMyPayment] = useCancelMyPaymentMutation();
 
   const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery(undefined, {
     pollingInterval: activePaymentModal ? 3000 : 0,
   });
+
+  const handleCancelPayment = async (paymentId: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn chờ thanh toán này không?')) return;
+    try {
+      await cancelMyPayment(paymentId).unwrap();
+      toast.success('Đã hủy giao dịch thành công!');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Không thể hủy giao dịch');
+    }
+  };
 
   // Tự động đóng Modal QR và thông báo thành công khi đơn hàng chuyển sang trạng thái PAID
   useEffect(() => {
@@ -349,14 +361,22 @@ export const SubscriptionPage = () => {
                     <td className="py-3 px-4 text-xs text-slate-400">
                       {new Date(p.createdAt).toLocaleString('vi-VN')}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right space-x-2">
                       {p.status === 'PENDING' && p.qrData && (
-                        <button
-                          onClick={() => setActivePaymentModal(p)}
-                          className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1"
-                        >
-                          <QrCode className="w-3.5 h-3.5" /> Quét QR
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setActivePaymentModal(p)}
+                            className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <QrCode className="w-3.5 h-3.5" /> Quét QR
+                          </button>
+                          <button
+                            onClick={() => handleCancelPayment(p.id)}
+                            className="px-3 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <Ban className="w-3.5 h-3.5" /> Hủy
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

@@ -147,6 +147,14 @@ export const saasApi = baseApi.injectEndpoints({
       providesTags: ['SaasPayment'],
     }),
 
+    cancelMyPayment: builder.mutation<SaasPayment, number>({
+      query: (paymentId) => ({
+        url: `/saas/payments/${paymentId}/cancel`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['SaasPayment'],
+    }),
+
     registerTenant: builder.mutation<any, any>({
       query: (body) => ({
         url: '/auth/register-tenant',
@@ -161,17 +169,17 @@ export const saasApi = baseApi.injectEndpoints({
       providesTags: ['SaasTenant'],
     }),
 
-    updateTenantStatus: builder.mutation<any, { id: number; status: string }>({
-      query: ({ id, status }) => ({
-        url: `/admin/saas/tenants/${id}/status?status=${status}`,
+    updateTenantStatus: builder.mutation<any, { id: number; status: string; adminPassword: string }>({
+      query: ({ id, status, adminPassword }) => ({
+        url: `/admin/saas/tenants/${id}/status?status=${status}&adminPassword=${encodeURIComponent(adminPassword)}`,
         method: 'PUT',
       }),
       invalidatesTags: ['SaasTenant'],
     }),
 
-    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number; adminPassword: string }>({
-      query: ({ id, planId, months, adminPassword }) => ({
-        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}&adminPassword=${encodeURIComponent(adminPassword)}`,
+    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number; days: number; adminPassword: string }>({
+      query: ({ id, planId, months, days, adminPassword }) => ({
+        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}&days=${days}&adminPassword=${encodeURIComponent(adminPassword)}`,
         method: 'POST',
       }),
       invalidatesTags: ['SaasTenant'],
@@ -253,6 +261,7 @@ export const {
   useGetMySubscriptionQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,
+  useCancelMyPaymentMutation,
   useRegisterTenantMutation,
   useGetSaasTenantsQuery,
   useUpdateTenantStatusMutation,

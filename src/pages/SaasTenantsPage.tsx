@@ -16,6 +16,7 @@ import {
   CalendarPlus,
   Lock,
   Eye,
+  EyeOff,
   X,
   Activity,
   CreditCard,
@@ -380,17 +381,34 @@ export const SaasTenantsPage = () => {
 
   const [detailModalTenant, setDetailModalTenant] = useState<SaasTenantSummary | null>(null);
   const [extendModalTenant, setExtendModalTenant] = useState<SaasTenantSummary | null>(null);
+  const [statusModalTenant, setStatusModalTenant] = useState<{ tenant: SaasTenantSummary, newStatus: string } | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number>(1);
-  const [extendMonths, setExtendMonths] = useState<number>(1);
+  const [extendMonths, setExtendMonths] = useState<number | ''>('');
+  const [extendDays, setExtendDays] = useState<number | ''>('');
   const [adminPassword, setAdminPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const handleStatusChange = async (tenantId: number, newStatus: string) => {
+  const handleStatusChangeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!statusModalTenant) return;
+    if (!adminPassword.trim()) {
+      toast.error('Vui lòng nhập mật khẩu Quản trị để xác nhận!');
+      return;
+    }
+
     try {
-      await updateStatus({ id: tenantId, status: newStatus }).unwrap();
+      await updateStatus({ 
+        id: statusModalTenant.tenant.id, 
+        status: statusModalTenant.newStatus,
+        adminPassword: adminPassword.trim()
+      }).unwrap();
       toast.success('Cập nhật trạng thái Shop thành công!');
+      setStatusModalTenant(null);
+      setAdminPassword('');
+      setShowPassword(false);
       refetch();
     } catch (err: any) {
-      toast.error(err?.data?.message || 'Thao tác thất bại');
+      toast.error(err?.data?.message || 'Mật khẩu sai hoặc thao tác thất bại');
     }
   };
 
@@ -406,10 +424,11 @@ export const SaasTenantsPage = () => {
       await extendSub({
         id: extendModalTenant.id,
         planId: selectedPlanId,
-        months: extendMonths,
+        months: Number(extendMonths) || 0,
+        days: Number(extendDays) || 0,
         adminPassword: adminPassword.trim(),
       }).unwrap();
-      toast.success(`Đã gia hạn/chuyển gói thành công ${extendMonths} tháng cho shop ${extendModalTenant.shopName}`);
+      toast.success(`Đã gia hạn/chuyển gói thành công ${Number(extendMonths) || 0} tháng và ${Number(extendDays) || 0} ngày cho shop ${extendModalTenant.shopName}`);
       setExtendModalTenant(null);
       setAdminPassword('');
       refetch();
@@ -559,7 +578,7 @@ export const SaasTenantsPage = () => {
 
                       {t.status === 'ACTIVE' ? (
                         <button
-                          onClick={() => handleStatusChange(t.id, 'BANNED')}
+                          onClick={() => setStatusModalTenant({ tenant: t, newStatus: 'BANNED' })}
                           className="px-2.5 py-1 rounded bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-xs font-medium inline-flex items-center gap-1"
                           title="Khóa Shop"
                         >
@@ -567,7 +586,7 @@ export const SaasTenantsPage = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleStatusChange(t.id, 'ACTIVE')}
+                          onClick={() => setStatusModalTenant({ tenant: t, newStatus: 'ACTIVE' })}
                           className="px-2.5 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-xs font-medium inline-flex items-center gap-1"
                           title="Mở khóa Shop"
                         >
@@ -616,33 +635,59 @@ export const SaasTenantsPage = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Số tháng gia hạn thêm
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="36"
-                  value={extendMonths}
-                  onChange={(e) => setExtendMonths(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Số tháng
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="36"
+                    value={extendMonths}
+                    onChange={(e) => setExtendMonths(e.target.value === '' ? '' : Number(e.target.value))}
+                    autoComplete="off"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(30,41,59)] [&:-webkit-autofill]:-webkit-text-fill-color-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Số ngày
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={extendDays}
+                    onChange={(e) => setExtendDays(e.target.value === '' ? '' : Number(e.target.value))}
+                    autoComplete="off"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(30,41,59)] [&:-webkit-autofill]:-webkit-text-fill-color-white"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
                   <Lock className="w-3.5 h-3.5" /> Mật khẩu Quản trị viên (Bắt buộc xác nhận)
                 </label>
-                <input
-                  type="password"
-                  placeholder="Nhập mật khẩu đăng nhập của bạn..."
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full bg-slate-800 border border-amber-500/40 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm placeholder:text-slate-500"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Nhập mật khẩu đăng nhập của bạn..."
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full bg-slate-800 border border-amber-500/40 rounded-lg pl-3 pr-10 py-2 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm placeholder:text-slate-500 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(30,41,59)] [&:-webkit-autofill]:-webkit-text-fill-color-white"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Thao tác thay đổi gói cước nhạy cảm, yêu cầu xác thực mật khẩu chính chủ.
                 </p>
@@ -666,6 +711,78 @@ export const SaasTenantsPage = () => {
                 >
                   <Lock className="w-3.5 h-3.5" />
                   {isExtending ? 'Đang xác thực...' : 'Xác nhận thay đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Change Status Modal */}
+      {statusModalTenant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              {statusModalTenant.newStatus === 'BANNED' ? (
+                <><AlertOctagon className="w-5 h-5 text-rose-400" /> Khóa Shop: {statusModalTenant.tenant.shopName}</>
+              ) : (
+                <><CheckCircle className="w-5 h-5 text-emerald-400" /> Mở khóa Shop: {statusModalTenant.tenant.shopName}</>
+              )}
+            </h3>
+
+            <p className="text-sm text-slate-300">
+              {statusModalTenant.newStatus === 'BANNED' 
+                ? 'Việc khóa shop sẽ chặn toàn bộ quyền truy cập của chủ shop và tạm dừng Bot Telegram. Bạn có chắc chắn muốn thực hiện?' 
+                : 'Mở khóa sẽ khôi phục lại quyền truy cập và khởi động lại Bot Telegram cho chủ shop. Bạn có chắc chắn muốn thực hiện?'}
+            </p>
+
+            <form onSubmit={handleStatusChangeSubmit} className="space-y-4 text-sm mt-4">
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" /> Mật khẩu Quản trị viên (Bắt buộc xác nhận)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Nhập mật khẩu đăng nhập của bạn..."
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full bg-slate-800 border border-amber-500/40 rounded-lg pl-3 pr-10 py-2 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm placeholder:text-slate-500 [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_rgb(30,41,59)] [&:-webkit-autofill]:-webkit-text-fill-color-white"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusModalTenant(null);
+                    setAdminPassword('');
+                    setShowPassword(false);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-2 rounded-lg text-white text-xs font-bold shadow-lg flex items-center gap-1.5 ${
+                    statusModalTenant.newStatus === 'BANNED' 
+                      ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20' 
+                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
+                  }`}
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Xác nhận
                 </button>
               </div>
             </form>
