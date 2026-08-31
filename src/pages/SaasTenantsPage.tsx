@@ -285,22 +285,37 @@ const TenantDetailDrawer = ({ tenant, onClose }: TenantDetailDrawerProps) => {
               ) : (
                 <div className="divide-y divide-slate-800 rounded-xl border border-slate-800 overflow-hidden bg-slate-800/30 max-h-96 overflow-y-auto">
                   {payments.map((p) => (
-                    <div key={p.id} className="p-4 hover:bg-slate-800/50 transition text-xs space-y-2">
+                    <div key={p.id} className="p-4 hover:bg-slate-800/50 transition text-xs space-y-2.5">
                       <div className="flex items-center justify-between">
-                        <div className="font-mono text-indigo-300 font-bold">{p.paymentCode}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-indigo-300 font-bold">{p.paymentCode}</span>
+                          {p.notes && (
+                            <span className="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 max-w-[200px] truncate" title={p.notes}>
+                              {p.notes}
+                            </span>
+                          )}
+                        </div>
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             p.status === 'PAID'
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : p.status === 'PARTIALLY_PAID'
+                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
+                              : p.status === 'REFUNDED'
+                              ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                               : p.status === 'PENDING'
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                               : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                           }`}
                         >
                           {p.status === 'PAID'
                             ? 'THÀNH CÔNG'
+                            : p.status === 'PARTIALLY_PAID'
+                            ? 'CHUYỂN THIẾU'
+                            : p.status === 'REFUNDED'
+                            ? 'ĐÃ HOÀN TIỀN'
                             : p.status === 'PENDING'
-                            ? 'CHỜ CHUYỂN KHOẢN'
+                            ? 'CHỜ THANH TOÁN'
                             : p.status === 'EXPIRED'
                             ? 'HẾT HẠN'
                             : 'ĐÃ HỦY'}
@@ -311,12 +326,19 @@ const TenantDetailDrawer = ({ tenant, onClose }: TenantDetailDrawerProps) => {
                         <div>
                           Gói: <strong className="text-white">{p.planName}</strong> ({p.durationMonths} tháng)
                         </div>
-                        <div className="font-bold text-emerald-400 text-sm">
-                          {Number(p.amount).toLocaleString('vi-VN')} đ
+                        <div className="text-right">
+                          <div className="font-bold text-emerald-400 text-sm">
+                            {Number(p.amount).toLocaleString('vi-VN')} đ
+                          </div>
+                          {p.receivedAmount !== undefined && p.receivedAmount !== null && Number(p.receivedAmount) > 0 && Number(p.receivedAmount) !== Number(p.amount) && (
+                            <div className="text-[10px] text-amber-400">
+                              Đã nhận: {Number(p.receivedAmount).toLocaleString('vi-VN')} đ
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1">
+                      <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-800/50">
                         <span>Ngày tạo: {new Date(p.createdAt).toLocaleString('vi-VN')}</span>
                         {p.paidAt && (
                           <span className="text-emerald-400/80">

@@ -44,7 +44,9 @@ export interface SaasPayment {
   planId: number;
   durationMonths: number;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  receivedAmount?: number;
+  notes?: string;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED' | 'EXPIRED' | 'CANCELLED';
   paymentMethod: string;
   qrData?: string;
   paidAt?: string;
@@ -107,7 +109,9 @@ export interface SaasPaymentRecord {
   planName: string;
   durationMonths: number;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  receivedAmount?: number;
+  notes?: string;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED' | 'EXPIRED' | 'CANCELLED';
   paidAt?: string;
   createdAt: string;
 }
@@ -232,6 +236,14 @@ export const saasApi = baseApi.injectEndpoints({
       query: (tenantId) => `/admin/saas/tenants/${tenantId}/payments`,
       providesTags: (_result, _error, id) => [{ type: 'SaasPayment', id }],
     }),
+
+    refundTenantPayment: builder.mutation<SaasPaymentRecord, { paymentId: number; reason?: string }>({
+      query: ({ paymentId, reason }) => ({
+        url: `/admin/saas/payments/${paymentId}/refund${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['SaasPayment', 'SaasRevenue' as any],
+    }),
   }),
 });
 
@@ -254,4 +266,6 @@ export const {
   useSavePlatformConfigMutation,
   useGetTenantMetricsQuery,
   useGetTenantPaymentsQuery,
+  useRefundTenantPaymentMutation,
 } = saasApi;
+
