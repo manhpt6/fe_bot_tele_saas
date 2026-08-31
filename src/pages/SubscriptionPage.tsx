@@ -107,9 +107,9 @@ export const SubscriptionPage = () => {
                 }`}
               >
                 {sub?.status === 'ACTIVE'
-                  ? 'ĐANG HOẠT ĐỘNG'
+                  ? (sub?.expiresAt && new Date(sub.expiresAt).getFullYear() > 2100 ? 'MIỄN PHÍ TRỌN ĐỜI' : 'ĐANG HOẠT ĐỘNG')
                   : sub?.status === 'TRIAL'
-                  ? 'DÙNG THỬ (7 NGÀY)'
+                  ? `DÙNG THỬ (${sub?.daysRemaining || 0} NGÀY)`
                   : 'ĐÃ HẾT HẠN'}
               </span>
             </p>
@@ -122,7 +122,11 @@ export const SubscriptionPage = () => {
                 <Calendar className="w-3.5 h-3.5" /> Còn lại
               </div>
               <div className="text-2xl font-black text-indigo-400 mt-1">
-                {sub?.daysRemaining || 0} <span className="text-xs font-normal text-slate-400">ngày</span>
+                {sub?.expiresAt && new Date(sub.expiresAt).getFullYear() > 2100 ? (
+                  <span className="text-lg text-emerald-400 font-bold">Vĩnh viễn</span>
+                ) : (
+                  <>{sub?.daysRemaining || 0} <span className="text-xs font-normal text-slate-400">ngày</span></>
+                )}
               </div>
             </div>
             <div className="text-center px-3">
@@ -154,8 +158,14 @@ export const SubscriptionPage = () => {
           {plans?.map((plan) => {
             const isCurrent = sub?.plan?.id === plan.id;
             const months = selectedDuration[plan.id] || 1;
-            const isYearly = months >= 12;
-            const totalPrice = isYearly && plan.priceYearly ? plan.priceYearly : plan.priceMonthly * months;
+            let totalPrice = plan.priceMonthly * months;
+            if (months === 12 && plan.priceYearly && plan.priceYearly > 0) {
+              totalPrice = plan.priceYearly;
+            } else if (months === 6 && plan.price6Months && plan.price6Months > 0) {
+              totalPrice = plan.price6Months;
+            } else if (months === 3 && plan.price3Months && plan.price3Months > 0) {
+              totalPrice = plan.price3Months;
+            }
             
             const isFreePlan = (plan.priceMonthly || 0) === 0;
 

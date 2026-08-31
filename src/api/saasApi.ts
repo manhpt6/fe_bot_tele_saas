@@ -11,6 +11,8 @@ export interface SaasPlan {
   name: string;
   slug: string;
   priceMonthly: number;
+  price3Months?: number;
+  price6Months?: number;
   priceYearly?: number;
   maxProducts: number;
   maxOrdersPerMonth?: number;
@@ -89,6 +91,7 @@ export interface SaasPlatformConfig {
   bankCode?: string;
   webhookProvider: string;
   webhookApiKey?: string;
+  systemBotToken?: string;
   isActive: boolean;
   adminPassword?: string;
 }

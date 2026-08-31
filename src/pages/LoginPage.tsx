@@ -153,7 +153,7 @@ export const LoginPage = () => {
                   to="/register"
                   className="inline-flex items-center justify-center w-full py-2.5 px-4 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-bold border border-indigo-500/30 transition"
                 >
-                  🚀 Mở Shop & Dùng Thử 7 Ngày Miễn Phí
+                  🚀 Mở Shop & Dùng Thử Miễn Phí
                 </Link>
               </div>
             </form>

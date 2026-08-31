@@ -53,7 +53,7 @@ export const RegisterPage = () => {
         })
       );
 
-      toast.success('🎉 Đăng ký thành công! Bạn được tặng 7 ngày dùng thử miễn phí.');
+      toast.success('🎉 Đăng ký thành công! Bạn đã được kích hoạt gói dùng thử.');
       navigate('/subscription');
     } catch (err: any) {
       toast.error(err?.data?.message || err?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -72,7 +72,7 @@ export const RegisterPage = () => {
         </div>
         <h2 className="text-3xl font-extrabold text-white tracking-tight">Mở Shop Bán Hàng Tự Động</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Tạo tài khoản ngay để sở hữu Bot Telegram kinh doanh 24/7 (Tặng 7 ngày dùng thử)
+          Tạo tài khoản ngay để sở hữu Bot Telegram kinh doanh 24/7 (Miễn phí dùng thử)
         </p>
       </div>
 
@@ -187,7 +187,7 @@ export const RegisterPage = () => {
             <div className="p-3 bg-indigo-950/40 border border-indigo-500/20 rounded-xl space-y-1.5">
               <div className="flex items-center text-xs text-indigo-300 font-medium">
                 <CheckCircle className="w-4 h-4 mr-1.5 text-indigo-400 shrink-0" />
-                Miễn phí 7 ngày dùng thử đầy đủ tính năng
+                Miễn phí dùng thử đầy đủ các tính năng
               </div>
               <div className="flex items-center text-xs text-indigo-300 font-medium">
                 <CheckCircle className="w-4 h-4 mr-1.5 text-indigo-400 shrink-0" />

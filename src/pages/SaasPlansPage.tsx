@@ -17,8 +17,8 @@ import {
   Eye,
   EyeOff,
   Layers,
-  Bot,
   Users,
+  Clock,
   Gamepad2,
   Sparkles,
   CreditCard,
@@ -207,9 +207,17 @@ export const SaasPlansPage = () => {
                     {Number(plan.priceMonthly).toLocaleString('vi-VN')}đ
                     <span className="text-xs font-normal text-slate-400">/tháng</span>
                   </div>
+                  <div className="grid grid-cols-2 gap-1 mt-1 text-[11px] text-slate-400">
+                    {plan.price3Months ? (
+                      <div>3T: <span className="text-slate-300 font-medium">{Number(plan.price3Months).toLocaleString('vi-VN')}đ</span></div>
+                    ) : null}
+                    {plan.price6Months ? (
+                      <div>6T: <span className="text-slate-300 font-medium">{Number(plan.price6Months).toLocaleString('vi-VN')}đ</span></div>
+                    ) : null}
+                  </div>
                   {plan.priceYearly && (
                     <div className="text-xs text-slate-400 mt-0.5">
-                      Gói năm: {Number(plan.priceYearly).toLocaleString('vi-VN')}đ
+                      Gói năm: <span className="text-slate-300 font-semibold">{Number(plan.priceYearly).toLocaleString('vi-VN')}đ</span>
                     </div>
                   )}
                 </div>
@@ -223,6 +231,12 @@ export const SaasPlansPage = () => {
                     <Users className="w-4 h-4 mr-2 text-indigo-400" />
                     <span>Tối đa: <strong>{plan.maxStaff === -1 ? 'Vô hạn' : plan.maxStaff}</strong> nhân viên</span>
                   </div>
+                  {plan.slug === 'trial' && (
+                    <div className="flex items-center">
+                      <Clock className="w-4 h-4 mr-2 text-indigo-400" />
+                      <span>Dùng thử: <strong>{plan.trialDays === 0 ? 'Vĩnh viễn' : `${plan.trialDays} ngày`}</strong></span>
+                    </div>
+                  )}
 
                 </div>
 
@@ -328,9 +342,9 @@ export const SaasPlansPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá tháng (VNĐ)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá 1 tháng (VNĐ) *</label>
                   <input
                     type="number"
                     value={editingPlan.priceMonthly === undefined ? '' : editingPlan.priceMonthly}
@@ -343,9 +357,36 @@ export const SaasPlansPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá năm (VNĐ)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá 3 tháng (VNĐ)</label>
                   <input
                     type="number"
+                    placeholder="Tự động"
+                    value={editingPlan.price3Months === undefined ? '' : editingPlan.price3Months}
+                    onChange={(e) =>
+                      setEditingPlan((prev) => ({ ...prev, price3Months: e.target.value === '' ? undefined : Number(e.target.value) }))
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá 6 tháng (VNĐ)</label>
+                  <input
+                    type="number"
+                    placeholder="Tự động"
+                    value={editingPlan.price6Months === undefined ? '' : editingPlan.price6Months}
+                    onChange={(e) =>
+                      setEditingPlan((prev) => ({ ...prev, price6Months: e.target.value === '' ? undefined : Number(e.target.value) }))
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Giá 1 năm (VNĐ)</label>
+                  <input
+                    type="number"
+                    placeholder="Tự động"
                     value={editingPlan.priceYearly === undefined ? '' : editingPlan.priceYearly}
                     onChange={(e) =>
                       setEditingPlan((prev) => ({ ...prev, priceYearly: e.target.value === '' ? undefined : Number(e.target.value) }))
@@ -410,7 +451,36 @@ export const SaasPlansPage = () => {
                   />
                 </div>
 
-
+                {editingPlan.slug === 'trial' ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-300">Dùng thử (Ngày)</label>
+                      <label className="flex items-center text-[10px] text-slate-400 cursor-pointer hover:text-white transition-colors">
+                        <input
+                          type="checkbox"
+                          className="mr-1 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-indigo-500"
+                          checked={editingPlan.trialDays === 0}
+                          onChange={(e) =>
+                            setEditingPlan((prev) => ({ ...prev, trialDays: e.target.checked ? 0 : 7 }))
+                          }
+                        />
+                        Vĩnh viễn
+                      </label>
+                    </div>
+                    <input
+                      type="number"
+                      disabled={editingPlan.trialDays === 0}
+                      value={editingPlan.trialDays === 0 ? '' : (editingPlan.trialDays ?? '')}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => ({ ...prev, trialDays: e.target.value === '' ? undefined : Number(e.target.value) }))
+                      }
+                      placeholder={editingPlan.trialDays === 0 ? 'Vĩnh viễn' : 'Nhập số ngày'}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                ) : (
+                  <div></div>
+                )}
               </div>
 
               {/* FEATURE MATRIX CHECKBOXES */}
