@@ -5,6 +5,7 @@ import {
   useGetFeatureRegistryQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,
+  useCancelMyPaymentMutation,
   SaasPlan,
   SaasPayment,
 } from '../api/saasApi';
@@ -17,6 +18,10 @@ import {
   Bot,
   Package,
   Users,
+  Lock,
+  RefreshCw,
+  Ban,
+  CreditCard,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,10 +32,21 @@ export const SubscriptionPage = () => {
   const [activePaymentModal, setActivePaymentModal] = useState<SaasPayment | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<Record<number, number>>({});
   const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
+  const [cancelMyPayment] = useCancelMyPaymentMutation();
 
   const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery(undefined, {
     pollingInterval: activePaymentModal ? 3000 : 0,
   });
+
+  const handleCancelPayment = async (paymentId: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn chờ thanh toán này không?')) return;
+    try {
+      await cancelMyPayment(paymentId).unwrap();
+      toast.success('Đã hủy giao dịch thành công!');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Không thể hủy giao dịch');
+    }
+  };
 
   // Tự động đóng Modal QR và thông báo thành công khi đơn hàng chuyển sang trạng thái PAID
   useEffect(() => {
@@ -136,53 +152,67 @@ export const SubscriptionPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans?.map((plan) => {
-            const isCurrent = sub?.planId === plan.id && sub?.status !== 'EXPIRED';
+            const isCurrent = sub?.plan?.id === plan.id;
             const months = selectedDuration[plan.id] || 1;
             const isYearly = months >= 12;
-            const price = isYearly && plan.priceYearly ? plan.priceYearly : plan.priceMonthly * months;
+            const totalPrice = isYearly && plan.priceYearly ? plan.priceYearly : plan.priceMonthly * months;
+            
+            const isFreePlan = (plan.priceMonthly || 0) === 0;
+
+            const isActive = sub?.status === 'ACTIVE' && !!sub.expiresAt && new Date(sub.expiresAt) > new Date();
+            const isPaidActive = isActive && (sub.plan?.priceMonthly || 0) > 0;
+
+            const hasPaidBefore = payments?.some((p) => p.status === 'PAID');
+            const isTrialDisabled = isFreePlan && hasPaidBefore;
+
+            const currentPrice = sub?.plan?.priceMonthly || 0;
+            const isLowerPlan = isPaidActive && !isCurrent && (plan.priceMonthly || 0) < currentPrice;
+
+            const isDisabled = isSubscribing || isTrialDisabled || isLowerPlan;
 
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl flex flex-col justify-between p-6 transition duration-200 ${
+                className={`relative bg-slate-900/80 backdrop-blur rounded-2xl p-6 border flex flex-col justify-between transition-all duration-300 ${
                   isCurrent
-                    ? 'bg-slate-900 border-2 border-indigo-500 shadow-xl shadow-indigo-500/10'
-                    : 'bg-slate-900/60 border border-slate-800 hover:border-slate-700'
+                    ? 'border-indigo-500/80 shadow-2xl shadow-indigo-500/10 ring-1 ring-indigo-500/50'
+                    : 'border-slate-800 hover:border-slate-700'
                 }`}
               >
                 {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider">
-                    Gói hiện tại
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-[11px] font-black uppercase tracking-wider px-3.5 py-1 rounded-full shadow-lg border border-indigo-400/30">
+                    Gói Bạn Đang Sử Dụng
                   </div>
                 )}
 
                 <div>
-                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+
                   <div className="mt-4 flex items-baseline">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-white">
-                      {price > 0 ? `${Number(price).toLocaleString('vi-VN')}đ` : 'Miễn phí'}
+                    <span className="text-3xl font-extrabold text-white">
+                      {totalPrice === 0 ? 'Miễn Phí' : `${totalPrice.toLocaleString('vi-VN')}đ`}
                     </span>
-                    {price > 0 && (
-                      <span className="ml-1.5 text-xs text-slate-400">/{months} tháng</span>
+                    {totalPrice > 0 && (
+                      <span className="ml-1.5 text-xs text-slate-400">/{months === 12 ? 'năm' : `${months} tháng`}</span>
                     )}
                   </div>
 
-                  {/* Duration selector */}
+                  {/* Duration Selector for Paid Plans */}
                   {plan.priceMonthly > 0 && (
-                    <div className="mt-4 flex rounded-lg bg-slate-800/80 p-1 border border-slate-700">
+                    <div className="mt-4 grid grid-cols-4 gap-1 p-1 bg-slate-800/80 rounded-lg text-xs">
                       {[1, 3, 6, 12].map((m) => (
                         <button
                           key={m}
                           onClick={() =>
                             setSelectedDuration((prev) => ({ ...prev, [plan.id]: m }))
                           }
-                          className={`flex-1 py-1 text-xs font-semibold rounded-md transition ${
+                          className={`py-1 rounded font-medium transition ${
                             months === m
                               ? 'bg-indigo-600 text-white shadow'
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          {m === 12 ? '1 Năm' : `${m}T`}
+                          {m === 12 ? '1N' : `${m}T`}
                         </button>
                       ))}
                     </div>
@@ -238,14 +268,42 @@ export const SubscriptionPage = () => {
 
                 <button
                   onClick={() => handleSubscribe(plan)}
-                  disabled={isSubscribing}
-                  className={`mt-8 w-full py-2.5 px-4 rounded-xl text-sm font-bold transition flex items-center justify-center ${
+                  disabled={isDisabled}
+                  className={`mt-8 w-full py-2.5 px-4 rounded-xl text-sm font-bold transition flex items-center justify-center gap-1.5 ${
                     isCurrent
-                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      ? isFreePlan
+                        ? 'bg-slate-800/80 text-slate-400 border border-slate-700/60 cursor-default'
+                        : 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 shadow-lg shadow-emerald-600/10'
+                      : isTrialDisabled || isLowerPlan
+                      ? 'bg-slate-800/60 text-slate-500 border border-slate-800 cursor-not-allowed'
                       : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20'
                   }`}
                 >
-                  {isCurrent ? 'Gia hạn thêm hạn' : 'Nâng cấp ngay'}
+                  {isCurrent ? (
+                    isFreePlan ? (
+                      <>Đang sử dụng (Miễn phí)</>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Gia hạn gói này
+                      </>
+                    )
+                  ) : isTrialDisabled ? (
+                    <>
+                      <Ban className="w-4 h-4 mr-1 text-slate-500" />
+                      Đã sử dụng dùng thử
+                    </>
+                  ) : isLowerPlan ? (
+                    <>
+                      <Lock className="w-4 h-4 mr-1 text-slate-500" />
+                      Gói thấp hơn (Chờ hết hạn)
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-1" />
+                      {isPaidActive ? 'Nâng cấp ngay' : isFreePlan ? 'Dùng thử ngay' : 'Đăng ký ngay'}
+                    </>
+                  )}
                 </button>
               </div>
             );
@@ -303,14 +361,22 @@ export const SubscriptionPage = () => {
                     <td className="py-3 px-4 text-xs text-slate-400">
                       {new Date(p.createdAt).toLocaleString('vi-VN')}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right space-x-2">
                       {p.status === 'PENDING' && p.qrData && (
-                        <button
-                          onClick={() => setActivePaymentModal(p)}
-                          className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1"
-                        >
-                          <QrCode className="w-3.5 h-3.5" /> Quét QR
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setActivePaymentModal(p)}
+                            className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <QrCode className="w-3.5 h-3.5" /> Quét QR
+                          </button>
+                          <button
+                            onClick={() => handleCancelPayment(p.id)}
+                            className="px-3 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 text-xs font-semibold inline-flex items-center gap-1"
+                          >
+                            <Ban className="w-3.5 h-3.5" /> Hủy
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>

@@ -4,6 +4,7 @@ import {
   useGetFeatureRegistryQuery,
   useCreateSaasPlanMutation,
   useUpdateSaasPlanMutation,
+  useDeleteSaasPlanMutation,
   SaasPlan,
 } from '../api/saasApi';
 import { useSimulation } from '../context/SimulationContext';
@@ -11,6 +12,10 @@ import {
   Package,
   Plus,
   Edit2,
+  Trash2,
+  AlertTriangle,
+  Eye,
+  EyeOff,
   Layers,
   Bot,
   Users,
@@ -43,6 +48,7 @@ export const SaasPlansPage = () => {
   const { data: featureRegistry, isLoading: isFeaturesLoading } = useGetFeatureRegistryQuery();
   const [createPlan, { isLoading: isCreating }] = useCreateSaasPlanMutation();
   const [updatePlan, { isLoading: isUpdating }] = useUpdateSaasPlanMutation();
+  const [deletePlanMutation, { isLoading: isDeleting }] = useDeleteSaasPlanMutation();
 
   const isLoading = isPlansLoading || isFeaturesLoading;
 
@@ -50,6 +56,31 @@ export const SaasPlansPage = () => {
 
   const [editingPlan, setEditingPlan] = useState<Partial<SaasPlan> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletePlanTarget, setDeletePlanTarget] = useState<SaasPlan | null>(null);
+
+  const handleToggleActive = async (plan: SaasPlan) => {
+    try {
+      const newStatus = !plan.isActive;
+      await updatePlan({ id: plan.id, plan: { ...plan, isActive: newStatus } }).unwrap();
+      toast.success(newStatus ? `Đã mở bán lại gói ${plan.name}!` : `Đã xóa mềm (ẩn) gói ${plan.name}!`);
+      if (deletePlanTarget) setDeletePlanTarget(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Thao tác thất bại');
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletePlanTarget) return;
+    try {
+      await deletePlanMutation(deletePlanTarget.id).unwrap();
+      toast.success(`Đã xóa vĩnh viễn gói ${deletePlanTarget.name}!`);
+      setDeletePlanTarget(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Không thể xóa gói cước');
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingPlan({
@@ -231,12 +262,33 @@ export const SaasPlansPage = () => {
                   <Gamepad2 className="w-4 h-4" /> Mô Phỏng Gói Này
                 </button>
 
-                <button
-                  onClick={() => handleOpenEdit(plan)}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                >
-                  <Edit2 className="w-3.5 h-3.5" /> Chỉnh Sửa & Cấu Hình Tính Năng
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleOpenEdit(plan)}
+                    className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Sửa
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(plan)}
+                    className={`py-2 px-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition ${
+                      plan.isActive
+                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20'
+                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                    }`}
+                    title={plan.isActive ? 'Xóa mềm (Ẩn gói này khỏi bảng giá)' : 'Mở bán lại gói này'}
+                  >
+                    {plan.isActive ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{plan.isActive ? 'Ẩn' : 'Mở'}</span>
+                  </button>
+                  <button
+                    onClick={() => setDeletePlanTarget(plan)}
+                    className="py-2 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold flex items-center justify-center transition"
+                    title="Xóa vĩnh viễn (Xóa cứng)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -382,19 +434,41 @@ export const SaasPlansPage = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="isActivePlan"
-                  checked={editingPlan.isActive ?? true}
-                  onChange={(e) =>
-                    setEditingPlan((prev) => ({ ...prev, isActive: e.target.checked }))
-                  }
-                  className="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
-                />
-                <label htmlFor="isActivePlan" className="text-xs font-semibold text-slate-300 cursor-pointer">
-                  Hiển thị gói cước này công khai trên bảng giá cho khách thuê
-                </label>
+              <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-2xl flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    {editingPlan.isActive ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    )}
+                    {editingPlan.isActive ? 'Trạng thái: Đang mở bán công khai' : 'Trạng thái: Đã xóa mềm (Ẩn khỏi bảng giá)'}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    {editingPlan.isActive
+                      ? 'Khách hàng có thể nhìn thấy và mua gói này trên web.'
+                      : 'Gói này đã bị ẩn với khách mới, khách cũ vẫn dùng tiếp đến khi hết hạn.'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingPlan((prev) => ({ ...prev, isActive: !prev?.isActive }))}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                    editingPlan.isActive
+                      ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                      : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  }`}
+                >
+                  {editingPlan.isActive ? (
+                    <>
+                      <EyeOff className="w-3.5 h-3.5" /> Ẩn gói (Xóa mềm)
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-3.5 h-3.5" /> Mở bán lại
+                    </>
+                  )}
+                </button>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
@@ -414,6 +488,68 @@ export const SaasPlansPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DELETE CONFIRMATION MODAL                                                 */}
+      {/* ========================================================================= */}
+      {deletePlanTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-white">Xác nhận xóa gói cước?</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Bạn đang yêu cầu xóa gói: <strong className="text-white">{deletePlanTarget.name}</strong> ({deletePlanTarget.slug})
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-slate-800/50 border border-slate-700/50 rounded-2xl space-y-2 text-xs text-slate-300">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Quy tắc an toàn:</strong> Nếu gói này <em>đã từng có Shop đăng ký hoặc thanh toán</em>, hệ thống sẽ <strong>chặn xóa vĩnh viễn</strong> để bảo toàn số liệu kế toán.
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 pl-6">
+                Để ngừng bán gói đã có người mua, hãy chọn <strong>Chỉnh sửa</strong> và tắt cờ <strong>"Hiển thị gói cước này công khai" (Xóa mềm)</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletePlanTarget(null)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+              >
+                Hủy
+              </button>
+              {deletePlanTarget.isActive && (
+                <button
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={() => handleToggleActive(deletePlanTarget)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-lg shadow-amber-600/20 flex items-center justify-center gap-1.5 transition"
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                  Xóa mềm (Ẩn gói ngay)
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteConfirm}
+                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/20 flex items-center justify-center gap-1.5 transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Đang xóa...' : 'Xóa cứng (Vĩnh viễn)'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -44,7 +44,9 @@ export interface SaasPayment {
   planId: number;
   durationMonths: number;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  receivedAmount?: number;
+  notes?: string;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED' | 'EXPIRED' | 'CANCELLED';
   paymentMethod: string;
   qrData?: string;
   paidAt?: string;
@@ -91,6 +93,29 @@ export interface SaasPlatformConfig {
   adminPassword?: string;
 }
 
+export interface SaasTenantMetrics {
+  currentProducts: number;
+  maxProducts: number | null;
+  currentStaff: number;
+  maxStaff: number | null;
+  currentOrdersThisMonth: number;
+  maxOrdersPerMonth: number | null;
+  totalCustomers: number;
+}
+
+export interface SaasPaymentRecord {
+  id: number;
+  paymentCode: string;
+  planName: string;
+  durationMonths: number;
+  amount: number;
+  receivedAmount?: number;
+  notes?: string;
+  status: 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED' | 'EXPIRED' | 'CANCELLED';
+  paidAt?: string;
+  createdAt: string;
+}
+
 export const saasApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPublicPlans: builder.query<SaasPlan[], void>({
@@ -122,6 +147,14 @@ export const saasApi = baseApi.injectEndpoints({
       providesTags: ['SaasPayment'],
     }),
 
+    cancelMyPayment: builder.mutation<SaasPayment, number>({
+      query: (paymentId) => ({
+        url: `/saas/payments/${paymentId}/cancel`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['SaasPayment'],
+    }),
+
     registerTenant: builder.mutation<any, any>({
       query: (body) => ({
         url: '/auth/register-tenant',
@@ -136,17 +169,17 @@ export const saasApi = baseApi.injectEndpoints({
       providesTags: ['SaasTenant'],
     }),
 
-    updateTenantStatus: builder.mutation<any, { id: number; status: string }>({
-      query: ({ id, status }) => ({
-        url: `/admin/saas/tenants/${id}/status?status=${status}`,
+    updateTenantStatus: builder.mutation<any, { id: number; status: string; adminPassword: string }>({
+      query: ({ id, status, adminPassword }) => ({
+        url: `/admin/saas/tenants/${id}/status?status=${status}&adminPassword=${encodeURIComponent(adminPassword)}`,
         method: 'PUT',
       }),
       invalidatesTags: ['SaasTenant'],
     }),
 
-    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number }>({
-      query: ({ id, planId, months }) => ({
-        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}`,
+    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number; days: number; adminPassword: string }>({
+      query: ({ id, planId, months, days, adminPassword }) => ({
+        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}&days=${days}&adminPassword=${encodeURIComponent(adminPassword)}`,
         method: 'POST',
       }),
       invalidatesTags: ['SaasTenant'],
@@ -175,6 +208,14 @@ export const saasApi = baseApi.injectEndpoints({
       invalidatesTags: ['SaasPlan'],
     }),
 
+    deleteSaasPlan: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/saas/plans/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['SaasPlan'],
+    }),
+
     getSaasRevenue: builder.query<SaasRevenueSummary, void>({
       query: () => '/admin/saas/revenue',
       providesTags: ['SaasPayment'],
@@ -193,6 +234,24 @@ export const saasApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['SaasPlatformConfig'],
     }),
+
+    getTenantMetrics: builder.query<SaasTenantMetrics, number>({
+      query: (tenantId) => `/admin/saas/tenants/${tenantId}/metrics`,
+      providesTags: (_result, _error, id) => [{ type: 'SaasTenant', id }],
+    }),
+
+    getTenantPayments: builder.query<SaasPaymentRecord[], number>({
+      query: (tenantId) => `/admin/saas/tenants/${tenantId}/payments`,
+      providesTags: (_result, _error, id) => [{ type: 'SaasPayment', id }],
+    }),
+
+    refundTenantPayment: builder.mutation<SaasPaymentRecord, { paymentId: number; reason?: string }>({
+      query: ({ paymentId, reason }) => ({
+        url: `/admin/saas/payments/${paymentId}/refund${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['SaasPayment', 'SaasRevenue' as any],
+    }),
   }),
 });
 
@@ -202,6 +261,7 @@ export const {
   useGetMySubscriptionQuery,
   useSubscribePlanMutation,
   useGetMyPaymentsQuery,
+  useCancelMyPaymentMutation,
   useRegisterTenantMutation,
   useGetSaasTenantsQuery,
   useUpdateTenantStatusMutation,
@@ -209,7 +269,12 @@ export const {
   useGetSaasPlansAdminQuery,
   useCreateSaasPlanMutation,
   useUpdateSaasPlanMutation,
+  useDeleteSaasPlanMutation,
   useGetSaasRevenueQuery,
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
+  useGetTenantMetricsQuery,
+  useGetTenantPaymentsQuery,
+  useRefundTenantPaymentMutation,
 } = saasApi;
+

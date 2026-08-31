@@ -80,10 +80,10 @@ export const AdminsPage = () => {
 
   const currentUser = meData;
 
-  const isCreatingAdmin = !editingUser && (formData.role === 'ADMIN' || formData.role === 'TENANT_ADMIN');
+  const isCreatingUser = !editingUser;
   const isPromotingToAdmin = Boolean(editingUser && editingUser.role !== 'ADMIN' && editingUser.role !== 'TENANT_ADMIN' && (formData.role === 'ADMIN' || formData.role === 'TENANT_ADMIN'));
   const isResettingPassword = Boolean(editingUser && formData.password.trim() !== '');
-  const isSensitiveAction = isCreatingAdmin || isPromotingToAdmin || isResettingPassword;
+  const isSensitiveAction = isCreatingUser || isPromotingToAdmin || isResettingPassword;
 
   // Access Control
   if (currentUser?.role !== 'ADMIN' && currentUser?.role !== 'TENANT_ADMIN' && currentUser?.role !== 'SUPER_ADMIN') {
@@ -718,7 +718,7 @@ export const AdminsPage = () => {
                     </button>
                   </div>
                   <p className="text-[10px] text-amber-200/80 leading-relaxed">
-                    {isCreatingAdmin && "Bắt buộc xác thực mật khẩu khi tạo tài khoản Quản trị mới."}
+                    {isCreatingUser && "Bắt buộc xác thực mật khẩu của bạn khi tạo tài khoản mới."}
                     {isPromotingToAdmin && "Bắt buộc xác thực mật khẩu khi nâng quyền nhân viên lên Quản trị."}
                     {isResettingPassword && !isPromotingToAdmin && "Bắt buộc xác thực mật khẩu khi đặt lại mật khẩu cho tài khoản này."}
                   </p>
