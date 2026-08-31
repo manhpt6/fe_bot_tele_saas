@@ -54,6 +54,11 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         // Tự động làm mới cache dữ liệu thông báo và số lượng chưa đọc
         dispatch(notificationApi.util.invalidateTags(['Notification']));
         
+        // Nếu là sự kiện thanh toán gói SaaS thành công, tự động làm mới ngầm toàn bộ dữ liệu gói cước và bot
+        if (notif.type === 'SAAS_PAYMENT') {
+          dispatch(baseApi.util.invalidateTags(['SaasSubscription', 'SaasPayment', 'BotConfig']));
+        }
+        
         // Phát âm thanh chuông báo
         try {
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');

@@ -192,7 +192,7 @@ export const SettingsPage = () => {
   const sepayWebhookUrl = webhookInfo?.sepayWebhookUrl || (
     typeof window !== 'undefined'
       ? (import.meta.env.VITE_API_BASE_URL
-          ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, '') + '/api/webhook/sepay'
+          ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v\d+\/?$/, '') + '/api/webhook/sepay'
           : `${window.location.origin}/api/webhook/sepay`)
       : 'http://localhost:8080/api/webhook/sepay'
   );
@@ -427,6 +427,12 @@ export const SettingsPage = () => {
                         )}
                       </span>
                     </div>
+                    {botConfig.status === 'DISCONNECTED' && (
+                      <div className="p-2.5 bg-slate-800/80 border border-slate-700 rounded-lg text-slate-400 text-[11px] leading-relaxed flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-slate-500 shrink-0"></span>
+                        <span>Bot hiện đang ở trạng thái ngắt kết nối.</span>
+                      </div>
+                    )}
                     {botConfig.errorMessage && (
                       <div className="p-2.5 bg-rose-950/40 border border-rose-800/50 rounded-lg text-rose-300 text-[11px] leading-relaxed">
                         ⚠️ <strong>Lỗi:</strong> {botConfig.errorMessage}
@@ -448,10 +454,16 @@ export const SettingsPage = () => {
                 className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 transition-all"
               >
                 <Bot size={16} />
-                <span>{botConfig?.botUsername ? 'Đổi Bot Token Mới' : 'Kết Nối Telegram Bot'}</span>
+                <span>
+                  {botConfig?.status === 'RUNNING'
+                    ? 'Đổi Bot Token Mới'
+                    : botConfig?.botUsername
+                    ? 'Kết Nối Lại Bot / Đổi Token'
+                    : 'Kết Nối Telegram Bot'}
+                </span>
               </button>
 
-              {botConfig?.botUsername && (
+              {botConfig?.status === 'RUNNING' && (
                 <button
                   type="button"
                   onClick={handleDisconnectClick}

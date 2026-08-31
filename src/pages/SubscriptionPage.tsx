@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useGetMySubscriptionQuery,
   useGetPublicPlansQuery,
@@ -24,11 +24,25 @@ export const SubscriptionPage = () => {
   const { data: sub, isLoading: isSubLoading, refetch: refetchSub } = useGetMySubscriptionQuery();
   const { data: plans, isLoading: isPlansLoading } = useGetPublicPlansQuery();
   const { data: featureRegistry } = useGetFeatureRegistryQuery();
-  const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery();
-
-  const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
-  const [selectedDuration, setSelectedDuration] = useState<Record<number, number>>({});
   const [activePaymentModal, setActivePaymentModal] = useState<SaasPayment | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<Record<number, number>>({});
+  const [subscribePlan, { isLoading: isSubscribing }] = useSubscribePlanMutation();
+
+  const { data: payments, isLoading: isPaymentsLoading } = useGetMyPaymentsQuery(undefined, {
+    pollingInterval: activePaymentModal ? 3000 : 0,
+  });
+
+  // Tự động đóng Modal QR và thông báo thành công khi đơn hàng chuyển sang trạng thái PAID
+  useEffect(() => {
+    if (activePaymentModal && payments) {
+      const currentPayment = payments.find((p) => p.id === activePaymentModal.id);
+      if (currentPayment && currentPayment.status === 'PAID') {
+        setActivePaymentModal(null);
+        toast.success('🎉 Thanh toán thành công! Gói cước đã được kích hoạt.');
+        refetchSub();
+      }
+    }
+  }, [payments, activePaymentModal, refetchSub]);
 
   const handleSubscribe = async (plan: SaasPlan) => {
     const months = selectedDuration[plan.id] || 1;
@@ -352,8 +366,9 @@ export const SubscriptionPage = () => {
               </div>
             </div>
 
-            <div className="text-xs text-slate-500">
-              Sau khi chuyển khoản, trang web sẽ tự động cập nhật. Bạn cũng có thể bấm F5 để tải lại.
+            <div className="text-xs text-indigo-400 flex items-center justify-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              Hệ thống đang tự động lắng nghe giao dịch chuyển khoản...
             </div>
           </div>
         </div>
