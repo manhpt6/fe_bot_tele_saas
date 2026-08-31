@@ -91,6 +91,27 @@ export interface SaasPlatformConfig {
   adminPassword?: string;
 }
 
+export interface SaasTenantMetrics {
+  currentProducts: number;
+  maxProducts: number | null;
+  currentStaff: number;
+  maxStaff: number | null;
+  currentOrdersThisMonth: number;
+  maxOrdersPerMonth: number | null;
+  totalCustomers: number;
+}
+
+export interface SaasPaymentRecord {
+  id: number;
+  paymentCode: string;
+  planName: string;
+  durationMonths: number;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  paidAt?: string;
+  createdAt: string;
+}
+
 export const saasApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getPublicPlans: builder.query<SaasPlan[], void>({
@@ -201,6 +222,16 @@ export const saasApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['SaasPlatformConfig'],
     }),
+
+    getTenantMetrics: builder.query<SaasTenantMetrics, number>({
+      query: (tenantId) => `/admin/saas/tenants/${tenantId}/metrics`,
+      providesTags: (_result, _error, id) => [{ type: 'SaasTenant', id }],
+    }),
+
+    getTenantPayments: builder.query<SaasPaymentRecord[], number>({
+      query: (tenantId) => `/admin/saas/tenants/${tenantId}/payments`,
+      providesTags: (_result, _error, id) => [{ type: 'SaasPayment', id }],
+    }),
   }),
 });
 
@@ -221,4 +252,6 @@ export const {
   useGetSaasRevenueQuery,
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
+  useGetTenantMetricsQuery,
+  useGetTenantPaymentsQuery,
 } = saasApi;

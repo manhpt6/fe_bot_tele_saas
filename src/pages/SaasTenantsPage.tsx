@@ -4,6 +4,8 @@ import {
   useUpdateTenantStatusMutation,
   useExtendTenantSubscriptionMutation,
   useGetPublicPlansQuery,
+  useGetTenantMetricsQuery,
+  useGetTenantPaymentsQuery,
   SaasTenantSummary,
 } from '../api/saasApi';
 import {
@@ -13,8 +15,336 @@ import {
   AlertOctagon,
   CalendarPlus,
   Lock,
+  Eye,
+  X,
+  Activity,
+  CreditCard,
+  Users,
+  Package,
+  ShoppingCart,
+  Bot,
+  Sparkles,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+interface TenantDetailDrawerProps {
+  tenant: SaasTenantSummary | null;
+  onClose: () => void;
+}
+
+const TenantDetailDrawer = ({ tenant, onClose }: TenantDetailDrawerProps) => {
+  const [activeTab, setActiveTab] = useState<'METRICS' | 'PAYMENTS'>('METRICS');
+
+  const {
+    data: metrics,
+    isLoading: isMetricsLoading,
+    refetch: refetchMetrics,
+  } = useGetTenantMetricsQuery(tenant?.id ?? 0, { skip: !tenant });
+
+  const {
+    data: payments,
+    isLoading: isPaymentsLoading,
+    refetch: refetchPayments,
+  } = useGetTenantPaymentsQuery(tenant?.id ?? 0, { skip: !tenant });
+
+  if (!tenant) return null;
+
+  const calculateQuota = (current: number, max: number | null | undefined) => {
+    if (max === null || max === undefined || max < 0) {
+      return {
+        percent: 0,
+        isUnlimited: true,
+        color: 'bg-indigo-500',
+        textColor: 'text-indigo-400',
+        label: 'Không giới hạn (∞)',
+      };
+    }
+    if (max === 0) {
+      return {
+        percent: 100,
+        isUnlimited: false,
+        color: 'bg-rose-500',
+        textColor: 'text-rose-400',
+        label: '0 (Chưa cấp)',
+      };
+    }
+    const percent = Math.min(Math.round((current / max) * 100), 100);
+    let color = 'bg-emerald-500';
+    let textColor = 'text-emerald-400';
+    if (percent >= 90) {
+      color = 'bg-rose-500';
+      textColor = 'text-rose-400';
+    } else if (percent >= 70) {
+      color = 'bg-amber-500';
+      textColor = 'text-amber-400';
+    }
+    return {
+      percent,
+      isUnlimited: false,
+      color,
+      textColor,
+      label: `${max.toLocaleString('vi-VN')}`,
+    };
+  };
+
+  const productQuota = calculateQuota(metrics?.currentProducts || 0, metrics?.maxProducts);
+  const staffQuota = calculateQuota(metrics?.currentStaff || 0, metrics?.maxStaff);
+  const orderQuota = calculateQuota(metrics?.currentOrdersThisMonth || 0, metrics?.maxOrdersPerMonth);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden relative">
+        {/* Header */}
+        <div className="p-5 sm:p-6 border-b border-slate-800 flex items-start justify-between bg-slate-900/90 sticky top-0 z-10">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">{tenant.shopName}</h2>
+              <span className="font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                #{tenant.tenantCode}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Chủ shop: <span className="text-slate-200 font-medium">{tenant.ownerUsername}</span> • Gói hiện tại:{' '}
+              <span className="text-indigo-400 font-medium">{tenant.currentPlan?.name || 'Chưa đăng ký'}</span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex border-b border-slate-800 px-6 bg-slate-950/40">
+          <button
+            onClick={() => setActiveTab('METRICS')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+              activeTab === 'METRICS'
+                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Activity className="w-4 h-4" /> Chỉ số & Tài nguyên
+          </button>
+          <button
+            onClick={() => setActiveTab('PAYMENTS')}
+            className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 transition ${
+              activeTab === 'PAYMENTS'
+                ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" /> Lịch sử Nạp tiền ({payments?.length || 0})
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {activeTab === 'METRICS' && (
+            <div className="space-y-6">
+              {/* Top Overview Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-medium">Khách hàng Telegram</span>
+                    <Users className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <div className="text-2xl font-black text-white mt-2">
+                    {metrics?.totalCustomers?.toLocaleString('vi-VN') || 0}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">Đã tương tác với Bot của shop</p>
+                </div>
+
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-medium">Trạng thái Bot</span>
+                    <Bot className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-sm font-bold text-white mt-2">
+                    {tenant.botUsername ? `@${tenant.botUsername}` : 'Chưa gắn bot'}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {tenant.isBotRunning ? '🟢 Đang hoạt động Realtime' : '⚪ Đang tạm dừng'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Resource Limit Progress Bars */}
+              <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-800 space-y-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" /> Hạn Mức Tài Nguyên Gói Cước
+                  </h3>
+                  <button
+                    onClick={() => refetchMetrics()}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs flex items-center gap-1"
+                    title="Làm mới số liệu"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {isMetricsLoading ? (
+                  <div className="py-8 text-center text-xs text-slate-500">Đang kiểm tra mức sử dụng tài nguyên...</div>
+                ) : (
+                  <div className="space-y-4 text-xs">
+                    {/* Sản phẩm */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+                          <Package className="w-3.5 h-3.5 text-indigo-400" /> Sản phẩm trong kho:
+                        </span>
+                        <span className="font-bold text-slate-200">
+                          {metrics?.currentProducts || 0} /{' '}
+                          <span className={productQuota.textColor}>{productQuota.label}</span>
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${productQuota.color}`}
+                          style={{ width: `${productQuota.isUnlimited ? 15 : productQuota.percent}%` }}
+                        />
+                      </div>
+                      {productQuota.percent >= 90 && !productQuota.isUnlimited && (
+                        <p className="text-[11px] text-rose-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Sắp chạm hạn mức tối đa của gói!
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Đơn hàng trong chu kỳ */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+                          <ShoppingCart className="w-3.5 h-3.5 text-indigo-400" /> Đơn hàng (Chu kỳ tháng này):
+                        </span>
+                        <span className="font-bold text-slate-200">
+                          {metrics?.currentOrdersThisMonth || 0} /{' '}
+                          <span className={orderQuota.textColor}>{orderQuota.label}</span>
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${orderQuota.color}`}
+                          style={{ width: `${orderQuota.isUnlimited ? 15 : orderQuota.percent}%` }}
+                        />
+                      </div>
+                      {orderQuota.percent >= 90 && !orderQuota.isUnlimited && (
+                        <p className="text-[11px] text-rose-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Đã dùng hết {orderQuota.percent}% hạn mức đơn hàng tháng này!
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Nhân viên */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-300 flex items-center gap-1.5 font-medium">
+                          <Users className="w-3.5 h-3.5 text-indigo-400" /> Tài khoản Nhân viên:
+                        </span>
+                        <span className="font-bold text-slate-200">
+                          {metrics?.currentStaff || 0} /{' '}
+                          <span className={staffQuota.textColor}>{staffQuota.label}</span>
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${staffQuota.color}`}
+                          style={{ width: `${staffQuota.isUnlimited ? 15 : staffQuota.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'PAYMENTS' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white">Lịch Sử Giao Dịch Mua Gói</h3>
+                <button
+                  onClick={() => refetchPayments()}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Làm mới
+                </button>
+              </div>
+
+              {isPaymentsLoading ? (
+                <div className="py-12 text-center text-xs text-slate-500">Đang tải lịch sử thanh toán...</div>
+              ) : !payments || payments.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-500 bg-slate-800/30 rounded-xl border border-slate-800">
+                  Shop này chưa có giao dịch thanh toán nào phát sinh.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800 rounded-xl border border-slate-800 overflow-hidden bg-slate-800/30 max-h-96 overflow-y-auto">
+                  {payments.map((p) => (
+                    <div key={p.id} className="p-4 hover:bg-slate-800/50 transition text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="font-mono text-indigo-300 font-bold">{p.paymentCode}</div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            p.status === 'PAID'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : p.status === 'PENDING'
+                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          }`}
+                        >
+                          {p.status === 'PAID'
+                            ? 'THÀNH CÔNG'
+                            : p.status === 'PENDING'
+                            ? 'CHỜ CHUYỂN KHOẢN'
+                            : p.status === 'EXPIRED'
+                            ? 'HẾT HẠN'
+                            : 'ĐÃ HỦY'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-300">
+                        <div>
+                          Gói: <strong className="text-white">{p.planName}</strong> ({p.durationMonths} tháng)
+                        </div>
+                        <div className="font-bold text-emerald-400 text-sm">
+                          {Number(p.amount).toLocaleString('vi-VN')} đ
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1">
+                        <span>Ngày tạo: {new Date(p.createdAt).toLocaleString('vi-VN')}</span>
+                        {p.paidAt && (
+                          <span className="text-emerald-400/80">
+                            Thanh toán: {new Date(p.paidAt).toLocaleTimeString('vi-VN')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/80 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const SaasTenantsPage = () => {
   const { data: tenants, isLoading, refetch } = useGetSaasTenantsQuery();
@@ -26,6 +356,7 @@ export const SaasTenantsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
+  const [detailModalTenant, setDetailModalTenant] = useState<SaasTenantSummary | null>(null);
   const [extendModalTenant, setExtendModalTenant] = useState<SaasTenantSummary | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number>(1);
   const [extendMonths, setExtendMonths] = useState<number>(1);
@@ -186,6 +517,14 @@ export const SaasTenantsPage = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
                       <button
+                        onClick={() => setDetailModalTenant(t)}
+                        className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold inline-flex items-center gap-1 border border-slate-700 transition"
+                        title="Xem chi tiết chỉ số & lịch sử nạp tiền"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-indigo-400" /> Chi tiết
+                      </button>
+
+                      <button
                         onClick={() => {
                           setExtendModalTenant(t);
                           if (t.currentPlan) setSelectedPlanId(t.currentPlan.id);
@@ -221,6 +560,12 @@ export const SaasTenantsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Tenant Detail Drawer */}
+      <TenantDetailDrawer
+        tenant={detailModalTenant}
+        onClose={() => setDetailModalTenant(null)}
+      />
 
       {/* Manual Extend Subscription Modal */}
       {extendModalTenant && (
