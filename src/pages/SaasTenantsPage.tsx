@@ -12,6 +12,7 @@ import {
   CheckCircle,
   AlertOctagon,
   CalendarPlus,
+  Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,6 +29,7 @@ export const SaasTenantsPage = () => {
   const [extendModalTenant, setExtendModalTenant] = useState<SaasTenantSummary | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<number>(1);
   const [extendMonths, setExtendMonths] = useState<number>(1);
+  const [adminPassword, setAdminPassword] = useState<string>('');
 
   const handleStatusChange = async (tenantId: number, newStatus: string) => {
     try {
@@ -42,18 +44,24 @@ export const SaasTenantsPage = () => {
   const handleExtendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!extendModalTenant) return;
+    if (!adminPassword.trim()) {
+      toast.error('Vui lòng nhập mật khẩu Quản trị để xác nhận!');
+      return;
+    }
 
     try {
       await extendSub({
         id: extendModalTenant.id,
         planId: selectedPlanId,
         months: extendMonths,
+        adminPassword: adminPassword.trim(),
       }).unwrap();
-      toast.success(`Đã gia hạn thành công ${extendMonths} tháng cho shop ${extendModalTenant.shopName}`);
+      toast.success(`Đã gia hạn/chuyển gói thành công ${extendMonths} tháng cho shop ${extendModalTenant.shopName}`);
       setExtendModalTenant(null);
+      setAdminPassword('');
       refetch();
     } catch (err: any) {
-      toast.error(err?.data?.message || 'Không thể gia hạn');
+      toast.error(err?.data?.message || 'Mật khẩu sai hoặc thao tác thất bại');
     }
   };
 
@@ -256,10 +264,30 @@ export const SaasTenantsPage = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" /> Mật khẩu Quản trị viên (Bắt buộc xác nhận)
+                </label>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu đăng nhập của bạn..."
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full bg-slate-800 border border-amber-500/40 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm placeholder:text-slate-500"
+                  required
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Thao tác thay đổi gói cước nhạy cảm, yêu cầu xác thực mật khẩu chính chủ.
+                </p>
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setExtendModalTenant(null)}
+                  onClick={() => {
+                    setExtendModalTenant(null);
+                    setAdminPassword('');
+                  }}
                   className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
                 >
                   Hủy
@@ -267,9 +295,10 @@ export const SaasTenantsPage = () => {
                 <button
                   type="submit"
                   disabled={isExtending}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20"
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center gap-1.5"
                 >
-                  {isExtending ? 'Đang xử lý...' : 'Xác nhận gia hạn'}
+                  <Lock className="w-3.5 h-3.5" />
+                  {isExtending ? 'Đang xác thực...' : 'Xác nhận thay đổi'}
                 </button>
               </div>
             </form>

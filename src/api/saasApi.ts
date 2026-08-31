@@ -144,9 +144,9 @@ export const saasApi = baseApi.injectEndpoints({
       invalidatesTags: ['SaasTenant'],
     }),
 
-    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number }>({
-      query: ({ id, planId, months }) => ({
-        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}`,
+    extendTenantSubscription: builder.mutation<any, { id: number; planId: number; months: number; adminPassword: string }>({
+      query: ({ id, planId, months, adminPassword }) => ({
+        url: `/admin/saas/tenants/${id}/extend?planId=${planId}&months=${months}&adminPassword=${encodeURIComponent(adminPassword)}`,
         method: 'POST',
       }),
       invalidatesTags: ['SaasTenant'],
@@ -171,6 +171,14 @@ export const saasApi = baseApi.injectEndpoints({
         url: `/admin/saas/plans/${id}`,
         method: 'PUT',
         body: plan,
+      }),
+      invalidatesTags: ['SaasPlan'],
+    }),
+
+    deleteSaasPlan: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/admin/saas/plans/${id}`,
+        method: 'DELETE',
       }),
       invalidatesTags: ['SaasPlan'],
     }),
@@ -209,6 +217,7 @@ export const {
   useGetSaasPlansAdminQuery,
   useCreateSaasPlanMutation,
   useUpdateSaasPlanMutation,
+  useDeleteSaasPlanMutation,
   useGetSaasRevenueQuery,
   useGetPlatformConfigQuery,
   useSavePlatformConfigMutation,
