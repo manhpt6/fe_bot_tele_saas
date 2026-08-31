@@ -217,16 +217,13 @@ export const SaasPlansPage = () => {
                 <div className="mt-5 space-y-2 text-xs text-slate-300">
                   <div className="flex items-center">
                     <Package className="w-4 h-4 mr-2 text-indigo-400" />
-                    <span>Tối đa: <strong>{plan.maxProducts || 'Vô hạn'}</strong> sản phẩm</span>
+                    <span>Tối đa: <strong>{plan.maxProducts === -1 ? 'Vô hạn' : plan.maxProducts}</strong> sản phẩm</span>
                   </div>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-2 text-indigo-400" />
-                    <span>Tối đa: <strong>{plan.maxStaff}</strong> nhân viên</span>
+                    <span>Tối đa: <strong>{plan.maxStaff === -1 ? 'Vô hạn' : plan.maxStaff}</strong> nhân viên</span>
                   </div>
-                  <div className="flex items-center">
-                    <Bot className="w-4 h-4 mr-2 text-indigo-400" />
-                    <span>Tối đa: <strong>{plan.maxBots}</strong> Bot Telegram</span>
-                  </div>
+
                 </div>
 
                 {/* Features Summary */}
@@ -336,9 +333,9 @@ export const SaasPlansPage = () => {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Giá tháng (VNĐ)</label>
                   <input
                     type="number"
-                    value={editingPlan.priceMonthly ?? 0}
+                    value={editingPlan.priceMonthly === undefined ? '' : editingPlan.priceMonthly}
                     onChange={(e) =>
-                      setEditingPlan((prev) => ({ ...prev, priceMonthly: Number(e.target.value) }))
+                      setEditingPlan((prev) => ({ ...prev, priceMonthly: e.target.value === '' ? undefined : Number(e.target.value) }))
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
                     required
@@ -349,9 +346,9 @@ export const SaasPlansPage = () => {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Giá năm (VNĐ)</label>
                   <input
                     type="number"
-                    value={editingPlan.priceYearly ?? 0}
+                    value={editingPlan.priceYearly === undefined ? '' : editingPlan.priceYearly}
                     onChange={(e) =>
-                      setEditingPlan((prev) => ({ ...prev, priceYearly: Number(e.target.value) }))
+                      setEditingPlan((prev) => ({ ...prev, priceYearly: e.target.value === '' ? undefined : Number(e.target.value) }))
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
                   />
@@ -360,40 +357,60 @@ export const SaasPlansPage = () => {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Max Sản Phẩm</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-300">Max Sản Phẩm</label>
+                    <label className="flex items-center text-[10px] text-slate-400 cursor-pointer hover:text-white transition-colors">
+                      <input
+                        type="checkbox"
+                        className="mr-1 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-indigo-500"
+                        checked={editingPlan.maxProducts === -1}
+                        onChange={(e) =>
+                          setEditingPlan((prev) => ({ ...prev, maxProducts: e.target.checked ? -1 : 100 }))
+                        }
+                      />
+                      Vô hạn
+                    </label>
+                  </div>
                   <input
                     type="number"
-                    value={editingPlan.maxProducts ?? 10}
+                    disabled={editingPlan.maxProducts === -1}
+                    value={editingPlan.maxProducts === -1 ? '' : (editingPlan.maxProducts ?? '')}
                     onChange={(e) =>
-                      setEditingPlan((prev) => ({ ...prev, maxProducts: Number(e.target.value) }))
+                      setEditingPlan((prev) => ({ ...prev, maxProducts: e.target.value === '' ? undefined : Number(e.target.value) }))
                     }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
+                    placeholder={editingPlan.maxProducts === -1 ? 'Vô hạn' : 'Nhập số lượng'}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Max Nhân Viên</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-300">Max Nhân Viên</label>
+                    <label className="flex items-center text-[10px] text-slate-400 cursor-pointer hover:text-white transition-colors">
+                      <input
+                        type="checkbox"
+                        className="mr-1 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-indigo-500"
+                        checked={editingPlan.maxStaff === -1}
+                        onChange={(e) =>
+                          setEditingPlan((prev) => ({ ...prev, maxStaff: e.target.checked ? -1 : 5 }))
+                        }
+                      />
+                      Vô hạn
+                    </label>
+                  </div>
                   <input
                     type="number"
-                    value={editingPlan.maxStaff ?? 1}
+                    disabled={editingPlan.maxStaff === -1}
+                    value={editingPlan.maxStaff === -1 ? '' : (editingPlan.maxStaff ?? '')}
                     onChange={(e) =>
-                      setEditingPlan((prev) => ({ ...prev, maxStaff: Number(e.target.value) }))
+                      setEditingPlan((prev) => ({ ...prev, maxStaff: e.target.value === '' ? undefined : Number(e.target.value) }))
                     }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
+                    placeholder={editingPlan.maxStaff === -1 ? 'Vô hạn' : 'Nhập số lượng'}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Max Bot Tele</label>
-                  <input
-                    type="number"
-                    value={editingPlan.maxBots ?? 1}
-                    onChange={(e) =>
-                      setEditingPlan((prev) => ({ ...prev, maxBots: Number(e.target.value) }))
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+
               </div>
 
               {/* FEATURE MATRIX CHECKBOXES */}

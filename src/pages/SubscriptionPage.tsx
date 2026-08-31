@@ -223,21 +223,16 @@ export const SubscriptionPage = () => {
                     <div className="flex items-center">
                       <Package className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
                       <span>
-                        Tối đa <strong>{plan.maxProducts ? `${plan.maxProducts} sản phẩm` : 'Không giới hạn'}</strong>
+                        Tối đa <strong>{plan.maxProducts === -1 ? 'Không giới hạn' : `${plan.maxProducts} sản phẩm`}</strong>
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
                       <span>
-                        <strong>{plan.maxStaff}</strong> nhân viên quản trị
+                        <strong>{plan.maxStaff === -1 ? 'Không giới hạn' : plan.maxStaff}</strong> nhân viên quản trị
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <Bot className="w-4 h-4 mr-2 text-indigo-400 shrink-0" />
-                      <span>
-                        <strong>{plan.maxBots}</strong> Bot Telegram độc lập
-                      </span>
-                    </div>
+
                   </div>
 
                   {/* Feature Matrix dynamic checklist */}
