@@ -17,14 +17,24 @@ import {
   Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../components/ui/Pagination';
 
 export const PaymentEventsPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [page, setPage] = useState<number>(0);
+  const [pageSize, setPageSize] = useState<number>(10);
 
-  const { data: events = [], isLoading } = useGetPaymentEventsQuery(
-    statusFilter === 'ALL' ? undefined : { status: statusFilter }
-  );
+  const { data: pageData, isLoading } = useGetPaymentEventsQuery({
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    keyword: searchTerm.trim() || undefined,
+    page,
+    size: pageSize,
+  });
+
+  const events = pageData?.content || [];
+  const totalPages = pageData?.totalPages || 0;
+  const totalElements = pageData?.totalElements || 0;
 
   const [creditWallet, { isLoading: isCrediting }] = useCreditWalletFromEventMutation();
   const [linkOrder, { isLoading: isLinking }] = useLinkOrderFromEventMutation();
@@ -49,17 +59,15 @@ export const PaymentEventsPage = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const filteredEvents = events.filter((ev) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      ev.providerTransactionId?.toLowerCase().includes(term) ||
-      ev.referenceCode?.toLowerCase().includes(term) ||
-      ev.rawContent?.toLowerCase().includes(term) ||
-      ev.resolutionNote?.toLowerCase().includes(term) ||
-      ev.amount?.toString().includes(term)
-    );
-  });
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    setPage(0);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setPage(0);
+  };
 
   const handleCreditWalletSubmit = async () => {
     if (!creditTarget) return;
@@ -124,40 +132,44 @@ export const PaymentEventsPage = () => {
         {/* Tabs Trạng thái */}
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 w-full md:w-auto">
           <button
-            onClick={() => setStatusFilter('ALL')}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${statusFilter === 'ALL'
+            onClick={() => handleStatusFilterChange('ALL')}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              statusFilter === 'ALL'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
-              }`}
+            }`}
           >
-            Tất cả ({events.length})
+            Tất cả
           </button>
           <button
-            onClick={() => setStatusFilter('UNRESOLVED')}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${statusFilter === 'UNRESOLVED'
+            onClick={() => handleStatusFilterChange('UNRESOLVED')}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              statusFilter === 'UNRESOLVED'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
-              }`}
+            }`}
           >
             <AlertCircle size={13} />
-            Chờ xử lý ({events.filter((e) => e.status === 'UNRESOLVED').length})
+            Chờ xử lý
           </button>
           <button
-            onClick={() => setStatusFilter('MANUALLY_RESOLVED')}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${statusFilter === 'MANUALLY_RESOLVED'
+            onClick={() => handleStatusFilterChange('MANUALLY_RESOLVED')}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              statusFilter === 'MANUALLY_RESOLVED'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
-              }`}
+            }`}
           >
             <CheckCircle size={13} />
-            Đã xử lý thủ công ({events.filter((e) => e.status === 'MANUALLY_RESOLVED').length})
+            Đã xử lý thủ công
           </button>
           <button
-            onClick={() => setStatusFilter('AUTO_RESOLVED')}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${statusFilter === 'AUTO_RESOLVED'
+            onClick={() => handleStatusFilterChange('AUTO_RESOLVED')}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              statusFilter === 'AUTO_RESOLVED'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
-              }`}
+            }`}
           >
             <CheckCircle size={13} />
             Tự động thành công
@@ -170,16 +182,17 @@ export const PaymentEventsPage = () => {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Tìm mã GD, số tiền, nội dung..."
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
-      {/* Bảng danh sách Webhook Events */}
+      {/* Danh sách Webhook Events */}
       <div className="glass rounded-xl border border-slate-800 overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        {/* Desktop Table: >= 768px */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-700/50 bg-slate-800/60 text-slate-400 text-xs font-semibold uppercase tracking-wider">
@@ -199,7 +212,7 @@ export const PaymentEventsPage = () => {
                     Đang tải danh sách giao dịch...
                   </td>
                 </tr>
-              ) : filteredEvents.length === 0 ? (
+              ) : events.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center py-6">
@@ -209,7 +222,7 @@ export const PaymentEventsPage = () => {
                   </td>
                 </tr>
               ) : (
-                filteredEvents.map((ev) => (
+                events.map((ev) => (
                   <tr key={ev.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-4 font-mono text-xs font-semibold text-white">
                       <div className="flex items-center gap-1.5">
@@ -239,12 +252,13 @@ export const PaymentEventsPage = () => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${ev.status === 'UNRESOLVED'
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 ${
+                          ev.status === 'UNRESOLVED'
                             ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
                             : ev.status === 'MANUALLY_RESOLVED'
                               ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                               : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          }`}
+                        }`}
                       >
                         {ev.status === 'UNRESOLVED' ? <AlertCircle size={12} /> : <CheckCircle size={12} />}
                         {ev.status === 'UNRESOLVED'
@@ -304,6 +318,126 @@ export const PaymentEventsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards: < 768px */}
+        <div className="md:hidden divide-y divide-slate-800/80">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">Đang tải danh sách giao dịch...</div>
+          ) : events.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              <Receipt size={36} className="mx-auto mb-2 opacity-20 text-slate-400" />
+              <p>Không tìm thấy giao dịch webhook nào</p>
+            </div>
+          ) : (
+            events.map((ev) => {
+              const borderAccent =
+                ev.status === 'UNRESOLVED'
+                  ? 'border-l-4 border-l-amber-500'
+                  : ev.status === 'MANUALLY_RESOLVED'
+                  ? 'border-l-4 border-l-purple-500'
+                  : 'border-l-4 border-l-emerald-500';
+
+              return (
+                <div key={ev.id} className={`p-4 bg-slate-900/40 space-y-3 ${borderAccent}`}>
+                  {/* Header: Mã GD + copy + badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-white">
+                      <span>{ev.providerTransactionId}</span>
+                      <button
+                        onClick={() => handleCopy(ev.providerTransactionId, `tx-m-${ev.id}`)}
+                        className="text-slate-500 hover:text-white p-1"
+                        title="Sao chép"
+                      >
+                        {copiedId === `tx-m-${ev.id}` ? (
+                          <Check size={13} className="text-emerald-400" />
+                        ) : (
+                          <Copy size={13} />
+                        )}
+                      </button>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 ${
+                        ev.status === 'UNRESOLVED'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : ev.status === 'MANUALLY_RESOLVED'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      {ev.status === 'UNRESOLVED' ? 'Chờ xử lý' : ev.status === 'MANUALLY_RESOLVED' ? 'Duyệt tay' : 'Tự động'}
+                    </span>
+                  </div>
+
+                  {/* Body: Số tiền & Cổng */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <div className="text-xs text-slate-400">Cổng: <span className="text-slate-200 font-medium">{ev.provider}</span></div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{new Date(ev.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="text-green-400 font-bold font-mono text-base">
+                      +{ev.amount.toLocaleString()}đ
+                    </div>
+                  </div>
+
+                  {/* Raw Content */}
+                  <div className="bg-slate-950/70 p-2 rounded border border-slate-800 text-xs font-mono text-slate-300 break-words whitespace-pre-wrap">
+                    {ev.rawContent || ev.referenceCode || 'Không có nội dung'}
+                  </div>
+
+                  {/* Ghi chú xử lý */}
+                  {ev.resolutionNote && (
+                    <div className="text-xs text-slate-400 bg-slate-800/40 p-2 rounded border border-slate-700/50">
+                      <span className="text-slate-300 font-medium">Ghi chú:</span> {ev.resolutionNote}
+                      {ev.resolvedBy && <div className="text-[10px] text-slate-500 mt-0.5">Bởi: {ev.resolvedBy}</div>}
+                    </div>
+                  )}
+
+                  {/* Actions khi UNRESOLVED */}
+                  {ev.status === 'UNRESOLVED' && (
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setCreditTarget(ev);
+                          setTelegramIdInput('');
+                          setCreditNoteInput(`Cộng tiền từ giao dịch SePay #${ev.providerTransactionId}`);
+                        }}
+                        className="flex-1 btn bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600 hover:text-white py-1.5 text-xs flex items-center justify-center gap-1.5 font-medium"
+                      >
+                        <Wallet size={13} />
+                        Cộng Ví
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLinkTarget(ev);
+                          setOrderCodeInput('');
+                          setLinkNoteInput(`Ghép đơn thủ công từ SePay #${ev.providerTransactionId}`);
+                        }}
+                        className="flex-1 btn bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white py-1.5 text-xs flex items-center justify-center gap-1.5 font-medium"
+                      >
+                        <LinkIcon size={13} />
+                        Ghép Đơn
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Phân trang Server-side */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          pageSizeOptions={[10, 25, 50, 100]}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(0);
+          }}
+        />
       </div>
 
       {/* Modal 1: Cộng Tiền Vào Ví Khách */}

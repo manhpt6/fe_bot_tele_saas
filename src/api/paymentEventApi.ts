@@ -1,4 +1,5 @@
 import { baseApi } from './baseApi';
+import { PageResponse } from '../types/pagination';
 
 export interface PaymentWebhookEvent {
   id: number;
@@ -15,14 +16,25 @@ export interface PaymentWebhookEvent {
   createdAt: string;
 }
 
+export interface PaymentEventQueryParams {
+  status?: string;
+  keyword?: string;
+  page?: number;
+  size?: number;
+}
+
 export const paymentEventApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getPaymentEvents: builder.query<PaymentWebhookEvent[], { status?: string } | void>({
+    getPaymentEvents: builder.query<PageResponse<PaymentWebhookEvent>, PaymentEventQueryParams | void>({
       query: (params) => {
-        if (!params || !params.status || params.status === 'ALL') {
-          return '/admin/payment-events';
-        }
-        return `/admin/payment-events?status=${params.status}`;
+        if (!params) return '/admin/payment-events';
+        const searchParams = new URLSearchParams();
+        if (params.status && params.status !== 'ALL') searchParams.append('status', params.status);
+        if (params.keyword) searchParams.append('keyword', params.keyword);
+        if (params.page !== undefined) searchParams.append('page', params.page.toString());
+        if (params.size !== undefined) searchParams.append('size', params.size.toString());
+        const qs = searchParams.toString();
+        return qs ? `/admin/payment-events?${qs}` : '/admin/payment-events';
       },
       providesTags: ['PaymentEvent' as any],
     }),

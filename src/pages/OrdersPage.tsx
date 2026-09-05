@@ -73,20 +73,63 @@ const renderOrderStatusBadge = (status: string) => {
   );
 };
 
+const OrderSkeleton = () => (
+  <div className="animate-pulse p-4 space-y-4">
+    {/* Desktop table skeleton */}
+    <div className="hidden md:block space-y-3">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-14 bg-slate-800/40 rounded-xl flex items-center justify-between px-4 gap-4 border border-slate-800/60">
+          <div className="h-4 w-28 bg-slate-700/50 rounded" />
+          <div className="h-4 w-36 bg-slate-700/50 rounded" />
+          <div className="h-5 w-24 bg-slate-700/50 rounded" />
+          <div className="h-4 w-24 bg-slate-700/50 rounded" />
+          <div className="h-6 w-28 bg-slate-700/50 rounded-full" />
+          <div className="h-4 w-32 bg-slate-700/50 rounded" />
+          <div className="h-8 w-20 bg-slate-700/50 rounded-lg" />
+        </div>
+      ))}
+    </div>
+    {/* Mobile card skeleton */}
+    <div className="md:hidden space-y-3">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="glass p-4 rounded-xl border border-slate-800 space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="h-5 w-32 bg-slate-700/60 rounded" />
+            <div className="h-5 w-24 bg-slate-700/60 rounded-full" />
+          </div>
+          <div className="space-y-2 py-1 border-t border-slate-800/60">
+            <div className="h-4 w-40 bg-slate-700/50 rounded" />
+            <div className="h-6 w-28 bg-slate-700/60 rounded" />
+          </div>
+          <div className="pt-2 border-t border-slate-800/80 flex justify-end gap-2">
+            <div className="h-8 w-20 bg-slate-700/50 rounded-lg" />
+            <div className="h-8 w-24 bg-slate-700/50 rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export const OrdersPage = () => {
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('ALL');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const { data: pageResponse, isLoading } = useGetOrdersQuery({
     page,
-    size: 10,
+    size: pageSize,
     keyword: debouncedSearchTerm || undefined,
     status: selectedStatus === 'ALL' ? undefined : selectedStatus,
   });
 
-  const orders = pageResponse?.content || [];
+  const rawOrders = pageResponse?.content || [];
+  const orders = rawOrders.filter(
+    (order) => selectedPaymentMethod === 'ALL' || order.paymentMethod === selectedPaymentMethod
+  );
   const [confirmOrder, { isLoading: isConfirming }] = useConfirmOrderMutation();
   const [retryDelivery, { isLoading: isRetrying }] = useRetryDeliveryMutation();
   const [completeManualDelivery, { isLoading: isCompletingManual }] = useCompleteManualDeliveryMutation();
@@ -292,6 +335,22 @@ ${payload}
           </button>
         </div>
 
+        {/* Payment Method Filter */}
+        <div className="w-full sm:w-auto">
+          <select
+            value={selectedPaymentMethod}
+            onChange={(e) => {
+              setSelectedPaymentMethod(e.target.value);
+              setPage(0);
+            }}
+            className="w-full sm:w-auto bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="ALL">Mọi thanh toán</option>
+            <option value="BANK_TRANSFER">🏦 Chuyển khoản</option>
+            <option value="WALLET">💳 Ví Bot</option>
+          </select>
+        </div>
+
         {/* Search */}
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -317,187 +376,356 @@ ${payload}
       </div>
 
       <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                <th className="p-4">Mã đơn</th>
-                <th className="p-4">Khách hàng</th>
-                <th className="p-4">Tổng tiền</th>
-                <th className="p-4">Thanh toán</th>
-                <th className="p-4">Trạng thái</th>
-                <th className="p-4">Ngày tạo</th>
-                <th className="p-4 text-right">Hành động</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50 text-sm">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">Đang tải dữ liệu...</td>
-                </tr>
-              ) : orders.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
-                    <div className="flex flex-col items-center">
-                      <ShoppingCart size={48} className="mb-2 opacity-20" />
-                      <p>Chưa có đơn hàng nào</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => setSelectedOrderId(order.id)}
-                    className="hover:bg-slate-800/60 cursor-pointer transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-1.5 font-mono font-medium text-white">
-                        <span>{order.orderCode}</span>
+        {isLoading ? (
+          <OrderSkeleton />
+        ) : orders.length === 0 ? (
+          <div className="p-12 text-center text-slate-500 flex flex-col items-center">
+            <ShoppingCart size={48} className="mb-2 opacity-20" />
+            <p className="text-base font-medium">Chưa có đơn hàng nào phù hợp</p>
+            <p className="text-xs text-slate-600 mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table: Màn hình md trở lên */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="p-4">Mã đơn</th>
+                    <th className="p-4">Khách hàng</th>
+                    <th className="p-4">Tổng tiền</th>
+                    <th className="p-4">Thanh toán</th>
+                    <th className="p-4">Trạng thái</th>
+                    <th className="p-4">Ngày tạo</th>
+                    <th className="p-4 text-right">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50 text-sm">
+                  {orders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5 font-mono font-medium text-white">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderId(order.id)}
+                            className="text-white hover:text-blue-400 hover:underline transition-colors font-mono font-semibold"
+                            title="Bấm để xem chi tiết đơn hàng"
+                          >
+                            #{order.orderCode}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyText(order.orderCode, `TABLE_ORD_${order.id}`, 'Đã chép mã đơn')
+                            }
+                            className="text-slate-500 hover:text-blue-400 p-0.5"
+                            title="Sao chép mã đơn"
+                          >
+                            {copiedKey === `TABLE_ORD_${order.id}` ? (
+                              <Check size={12} className="text-emerald-400" />
+                            ) : (
+                              <Copy size={12} />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-blue-300 font-medium">{order.customer.firstName}</div>
+                        <div className="text-xs text-slate-400 flex items-center gap-1">
+                          {order.customer.username ? (
+                            <a
+                              href={`https://t.me/${order.customer.username}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-400 hover:underline flex items-center gap-0.5"
+                            >
+                              @{order.customer.username}
+                              <ExternalLink size={10} />
+                            </a>
+                          ) : (
+                            <span className="italic text-slate-500">ID: {order.customer.telegramId}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="text-green-400 font-bold font-mono">{order.totalAmount.toLocaleString()}đ</div>
+                        {order.discountAmount && order.discountAmount > 0 ? (
+                          <div className="text-[11px] text-amber-400 font-mono flex items-center gap-0.5">
+                            <Ticket size={10} /> -{order.discountAmount.toLocaleString()}đ ({order.voucherCode || 'Mã'})
+                          </div>
+                        ) : null}
+                        {order.feeAmount && order.feeAmount > 0 ? (
+                          <div className="text-[11px] text-slate-400">
+                            (+{order.feeAmount.toLocaleString()}đ phí)
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="p-4 text-xs text-slate-300">
+                        <span>{order.paymentMethod === 'BANK_TRANSFER' ? '🏦 Ngân hàng' : '💳 Ví Bot'}</span>
+                      </td>
+                      <td className="p-4">{renderOrderStatusBadge(order.status)}</td>
+                      <td className="p-4 text-xs text-slate-400">
+                        {new Date(order.createdAt).toLocaleString('vi-VN')}
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrderId(order.id)}
+                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                            title="Xem chi tiết"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          {order.status === 'PENDING' && order.paymentMethod === 'BANK_TRANSFER' && (
+                            <button
+                              type="button"
+                              onClick={() => handleConfirm(order.orderCode)}
+                              disabled={isConfirming}
+                              className="btn bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold"
+                            >
+                              Duyệt đơn
+                            </button>
+                          )}
+                          {order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRetryDelivery(order.id)}
+                              disabled={isRetrying || isMarkingDelivered}
+                              className="btn bg-amber-600/20 text-amber-300 border border-amber-500/30 hover:bg-amber-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold"
+                            >
+                              Giao lại
+                            </button>
+                          )}
+                          {((order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO') ||
+                            (order.status === 'PAID_MANUAL_PENDING' && order.deliveryMode === 'MANUAL')) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setManualDeliveryTarget({
+                                  id: order.id,
+                                  orderCode: order.orderCode,
+                                  customerName: order.customer.firstName,
+                                  customerUsername: order.customer.username,
+                                  totalAmount: order.totalAmount,
+                                  deliveryMode: order.deliveryMode,
+                                });
+                                setManualDeliveryNote('Đã bàn giao tài khoản qua chat Telegram');
+                              }}
+                              disabled={isRetrying || isMarkingDelivered || isCompletingManual || isRefunding}
+                              className="btn bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold flex items-center gap-1"
+                            >
+                              <Truck size={12} />
+                              Đã giao
+                            </button>
+                          )}
+                          {['PAID_MANUAL_PENDING', 'PAID_REVIEW_REQUIRED', 'DELIVERY_FAILED', 'DELIVERY_REVIEW_REQUIRED'].includes(order.status) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRefundTargetOrder({
+                                  id: order.id,
+                                  orderCode: order.orderCode,
+                                  totalAmount: order.totalAmount,
+                                  customerName: order.customer.firstName,
+                                });
+                                setRefundReason('');
+                              }}
+                              disabled={isRefunding}
+                              className="btn bg-red-600/20 text-red-300 border border-red-500/30 hover:bg-red-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50"
+                              title="Hoàn tiền vào ví khách hàng"
+                            >
+                              Hoàn tiền
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards: Màn hình dưới 768px */}
+            <div className="md:hidden divide-y divide-slate-800/80">
+              {orders.map((order) => {
+                const borderAccent =
+                  order.status === 'COMPLETED'
+                    ? 'border-l-4 border-l-emerald-500'
+                    : order.status === 'PENDING'
+                    ? 'border-l-4 border-l-amber-500'
+                    : order.status === 'DELIVERY_FAILED'
+                    ? 'border-l-4 border-l-rose-500'
+                    : order.status === 'PAID_MANUAL_PENDING'
+                    ? 'border-l-4 border-l-purple-500'
+                    : 'border-l-4 border-l-slate-600';
+
+                return (
+                  <div key={order.id} className={`p-4 bg-slate-900/40 space-y-3 ${borderAccent}`}>
+                    {/* Header: Mã đơn + Copy + Trạng thái */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopyText(order.orderCode, `TABLE_ORD_${order.id}`, 'Đã chép mã đơn');
-                          }}
-                          className="text-slate-500 hover:text-blue-400 p-0.5"
-                          title="Sao chép mã đơn"
-                        >
-                          {copiedKey === `TABLE_ORD_${order.id}` ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-blue-300 font-medium">{order.customer.firstName}</div>
-                      <div className="text-xs text-slate-400 flex items-center gap-1">
-                        {order.customer.username ? (
-                          <a
-                            href={`https://t.me/${order.customer.username}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-blue-400 hover:underline flex items-center gap-0.5"
-                          >
-                            @{order.customer.username}
-                            <ExternalLink size={10} />
-                          </a>
-                        ) : (
-                          <span className="italic text-slate-500">ID: {order.customer.telegramId}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-green-400 font-bold font-mono">{order.totalAmount.toLocaleString()}đ</div>
-                      {order.discountAmount && order.discountAmount > 0 ? (
-                        <div className="text-[11px] text-amber-400 font-mono flex items-center gap-0.5">
-                          <Ticket size={10} /> -{order.discountAmount.toLocaleString()}đ ({order.voucherCode || 'Mã'})
-                        </div>
-                      ) : null}
-                      {order.feeAmount && order.feeAmount > 0 ? (
-                        <div className="text-[11px] text-slate-400">
-                          (+{order.feeAmount.toLocaleString()}đ phí)
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="p-4 text-xs text-slate-300">
-                      <span>{order.paymentMethod === 'BANK_TRANSFER' ? '🏦 Ngân hàng' : '💳 Ví Bot'}</span>
-                    </td>
-                    <td className="p-4">
-                      {renderOrderStatusBadge(order.status)}
-                    </td>
-                    <td className="p-4 text-xs text-slate-400">
-                      {new Date(order.createdAt).toLocaleString('vi-VN')}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
                           onClick={() => setSelectedOrderId(order.id)}
-                          className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
-                          title="Xem chi tiết"
+                          className="font-mono font-bold text-blue-400 hover:underline text-sm"
                         >
-                          <Eye size={16} />
+                          #{order.orderCode}
                         </button>
-                        {order.status === 'PENDING' && order.paymentMethod === 'BANK_TRANSFER' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleConfirm(order.orderCode);
-                            }}
-                            disabled={isConfirming}
-                            className="btn bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold"
-                          >
-                            Duyệt đơn
-                          </button>
-                        )}
-                        {order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRetryDelivery(order.id);
-                            }}
-                            disabled={isRetrying || isMarkingDelivered}
-                            className="btn bg-amber-600/20 text-amber-300 border border-amber-500/30 hover:bg-amber-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold"
-                          >
-                            Giao lại
-                          </button>
-                        )}
-                        {((order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO') ||
-                          (order.status === 'PAID_MANUAL_PENDING' && order.deliveryMode === 'MANUAL')) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setManualDeliveryTarget({
-                                id: order.id,
-                                orderCode: order.orderCode,
-                                customerName: order.customer.firstName,
-                                customerUsername: order.customer.username,
-                                totalAmount: order.totalAmount,
-                                deliveryMode: order.deliveryMode,
-                              });
-                              setManualDeliveryNote('Đã bàn giao tài khoản qua chat Telegram');
-                            }}
-                            disabled={isRetrying || isMarkingDelivered || isCompletingManual || isRefunding}
-                            className="btn bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50 font-semibold flex items-center gap-1"
-                          >
-                            <Truck size={12} />
-                            Đã giao
-                          </button>
-                        )}
-                        {['PAID_MANUAL_PENDING', 'PAID_REVIEW_REQUIRED', 'DELIVERY_FAILED', 'DELIVERY_REVIEW_REQUIRED'].includes(order.status) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRefundTargetOrder({
-                                id: order.id,
-                                orderCode: order.orderCode,
-                                totalAmount: order.totalAmount,
-                                customerName: order.customer.firstName,
-                              });
-                              setRefundReason('');
-                            }}
-                            disabled={isRefunding}
-                            className="btn bg-red-600/20 text-red-300 border border-red-500/30 hover:bg-red-600 hover:text-white px-2.5 py-1 text-xs disabled:opacity-50"
-                            title="Hoàn tiền vào ví khách hàng"
-                          >
-                            Hoàn tiền
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(order.orderCode, `M_ORD_${order.id}`, 'Đã chép mã đơn')}
+                          className="text-slate-500 hover:text-white p-1"
+                          title="Sao chép"
+                        >
+                          {copiedKey === `M_ORD_${order.id}` ? (
+                            <Check size={14} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      <div>{renderOrderStatusBadge(order.status)}</div>
+                    </div>
+
+                    {/* Customer & Amount */}
+                    <div className="flex items-start justify-between text-sm pt-1">
+                      <div>
+                        <div className="text-xs text-slate-400">Khách hàng</div>
+                        <div className="text-blue-300 font-medium">{order.customer.firstName}</div>
+                        <div className="text-xs text-slate-400">
+                          {order.customer.username ? (
+                            <a
+                              href={`https://t.me/${order.customer.username}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-400 hover:underline"
+                            >
+                              @{order.customer.username}
+                            </a>
+                          ) : (
+                            <span className="italic text-slate-500">ID: {order.customer.telegramId}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-slate-400">Tổng thanh toán</div>
+                        <div className="text-green-400 font-bold font-mono text-base">
+                          {order.totalAmount.toLocaleString()}đ
+                        </div>
+                        {order.discountAmount && order.discountAmount > 0 ? (
+                          <div className="text-[11px] text-amber-400 font-mono">
+                            -{order.discountAmount.toLocaleString()}đ ({order.voucherCode || 'Mã'})
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Payment & Time */}
+                    <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-800/50">
+                      <span>{order.paymentMethod === 'BANK_TRANSFER' ? '🏦 Chuyển khoản' : '💳 Ví Bot'}</span>
+                      <span>{new Date(order.createdAt).toLocaleString('vi-VN')}</span>
+                    </div>
+
+                    {/* Mobile Action Buttons */}
+                    <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrderId(order.id)}
+                        className="flex-1 min-w-[90px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Eye size={14} />
+                        <span>Chi tiết</span>
+                      </button>
+
+                      {order.status === 'PENDING' && order.paymentMethod === 'BANK_TRANSFER' && (
+                        <button
+                          type="button"
+                          onClick={() => handleConfirm(order.orderCode)}
+                          disabled={isConfirming}
+                          className="flex-1 min-w-[100px] py-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shadow-lg shadow-blue-900/30 transition-colors disabled:opacity-50"
+                        >
+                          <CheckCircle size={14} />
+                          <span>Duyệt đơn</span>
+                        </button>
+                      )}
+
+                      {order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRetryDelivery(order.id)}
+                          disabled={isRetrying || isMarkingDelivered}
+                          className="flex-1 min-w-[100px] py-2 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shadow-lg shadow-amber-900/30 transition-colors disabled:opacity-50"
+                        >
+                          <RefreshCw size={14} />
+                          <span>Giao lại</span>
+                        </button>
+                      )}
+
+                      {((order.status === 'DELIVERY_FAILED' && order.deliveryMode === 'AUTO') ||
+                        (order.status === 'PAID_MANUAL_PENDING' && order.deliveryMode === 'MANUAL')) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualDeliveryTarget({
+                              id: order.id,
+                              orderCode: order.orderCode,
+                              customerName: order.customer.firstName,
+                              customerUsername: order.customer.username,
+                              totalAmount: order.totalAmount,
+                              deliveryMode: order.deliveryMode,
+                            });
+                            setManualDeliveryNote('Đã bàn giao tài khoản qua chat Telegram');
+                          }}
+                          disabled={isRetrying || isMarkingDelivered || isCompletingManual || isRefunding}
+                          className="flex-1 min-w-[100px] py-2 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1 shadow-lg shadow-purple-900/30 transition-colors"
+                        >
+                          <Truck size={14} />
+                          <span>Giao tay</span>
+                        </button>
+                      )}
+
+                      {['PAID_MANUAL_PENDING', 'PAID_REVIEW_REQUIRED', 'DELIVERY_FAILED', 'DELIVERY_REVIEW_REQUIRED'].includes(order.status) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRefundTargetOrder({
+                              id: order.id,
+                              orderCode: order.orderCode,
+                              totalAmount: order.totalAmount,
+                              customerName: order.customer.firstName,
+                            });
+                            setRefundReason('');
+                          }}
+                          disabled={isRefunding}
+                          className="py-2 px-3 bg-red-600/20 text-red-300 border border-red-500/30 hover:bg-red-600 hover:text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                        >
+                          Hoàn tiền
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {pageResponse && (
           <Pagination
             currentPage={pageResponse.pageNumber}
             totalPages={pageResponse.totalPages}
             totalElements={pageResponse.totalElements}
-            pageSize={pageResponse.pageSize}
+            pageSize={pageSize}
             onPageChange={setPage}
+            pageSizeOptions={[10, 25, 50, 100]}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(0);
+            }}
           />
         )}
       </div>

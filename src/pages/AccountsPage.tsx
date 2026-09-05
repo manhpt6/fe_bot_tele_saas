@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGetAccountsQuery, useDeleteAccountMutation, useImportExcelMutation, useAddBulkAccountsMutation } from '../api/accountApi';
 import { useGetProductsQuery } from '../api/productApi';
-import { Users, Upload, Trash2, Search, Filter, Eye, X, RotateCcw, ChevronDown, ShieldCheck, Gem } from 'lucide-react';
+import { Users, Upload, Trash2, Search, Filter, Eye, X, RotateCcw, ChevronDown, ShieldCheck, Gem, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Pagination } from '../components/ui/Pagination';
 import { useDebounce } from '../hooks/useDebounce';
@@ -80,7 +80,41 @@ export const AccountsPage = () => {
     }
   }, [selectedProductId, accountFormatFields.length, manualData.length]);
 
+  const bulkValidation = useMemo(() => {
+    if (!bulkText.trim()) return null;
+    const rawLines = bulkText.split('\n');
+    const expectedCount = accountFormatFields.length;
+    
+    let validCount = 0;
+    const errorLines: { lineNum: number; text: string; actualCount: number }[] = [];
+    const validLines: string[] = [];
 
+    rawLines.forEach((rawLine, idx) => {
+      const line = rawLine.trim();
+      if (!line) return;
+      const parts = line.split('|').map(p => p.trim());
+      if (parts.length === expectedCount && parts.every(p => p.length > 0)) {
+        validCount++;
+        validLines.push(line);
+      } else {
+        errorLines.push({ lineNum: idx + 1, text: line, actualCount: parts.length });
+      }
+    });
+
+    return {
+      totalNonEmpty: validCount + errorLines.length,
+      validCount,
+      errorCount: errorLines.length,
+      errorLines,
+      validLines,
+    };
+  }, [bulkText, accountFormatFields.length]);
+
+  const handleRemoveInvalidLines = () => {
+    if (!bulkValidation || bulkValidation.validLines.length === 0) return;
+    setBulkText(bulkValidation.validLines.join('\n'));
+    toast.success(`Đã giữ lại ${bulkValidation.validCount} dòng hợp lệ, loại bỏ ${bulkValidation.errorCount} dòng lỗi!`);
+  };
 
   const handleFileUploadTXT = (fileObj: File) => {
     if (!fileObj) return;
@@ -154,6 +188,11 @@ export const AccountsPage = () => {
     } else if (importMode === 'TEXTAREA') {
       if (!bulkText.trim()) {
         toast.error('Vui lòng nhập dữ liệu');
+        return;
+      }
+
+      if (bulkValidation && bulkValidation.errorCount > 0) {
+        toast.error(`Có ${bulkValidation.errorCount} dòng sai cấu trúc. Vui lòng sửa hoặc bấm "Lọc bỏ dòng lỗi" trước khi nạp!`);
         return;
       }
       
@@ -580,6 +619,62 @@ export const AccountsPage = () => {
                     required
                   />
                 </div>
+
+                {bulkValidation && (
+                  <div className="space-y-2 mt-3 animate-in fade-in">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-900/80 border border-slate-700/80 text-xs">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-slate-400">
+                          Tổng: <strong className="text-white font-mono">{bulkValidation.totalNonEmpty}</strong> dòng
+                        </span>
+                        <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                          <CheckCircle2 size={14} />
+                          <span><strong>{bulkValidation.validCount}</strong> dòng hợp lệ</span>
+                        </span>
+                        {bulkValidation.errorCount > 0 && (
+                          <span className="flex items-center gap-1 text-rose-400 font-semibold">
+                            <AlertTriangle size={14} />
+                            <span><strong>{bulkValidation.errorCount}</strong> dòng sai cú pháp</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {bulkValidation.errorCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveInvalidLines}
+                          className="px-2.5 py-1 rounded-md bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/30 text-xs font-semibold flex items-center gap-1 transition-all shadow-sm"
+                        >
+                          <Sparkles size={13} />
+                          <span>Lọc bỏ {bulkValidation.errorCount} dòng lỗi</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {bulkValidation.errorCount > 0 && (
+                      <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/40 text-xs space-y-1.5 max-h-36 overflow-y-auto">
+                        <div className="text-rose-300 font-semibold flex items-center gap-1.5">
+                          <AlertTriangle size={14} />
+                          <span>Chi tiết dòng không đúng định dạng (Yêu cầu {accountFormatFields.length} trường ngăn cách bởi dấu &apos;|&apos;):</span>
+                        </div>
+                        <div className="space-y-1">
+                          {bulkValidation.errorLines.slice(0, 8).map((err, i) => (
+                            <div key={i} className="text-slate-300 font-mono text-[11px] flex items-center gap-2">
+                              <span className="text-rose-400 font-bold shrink-0">Dòng {err.lineNum}:</span>
+                              <span className="truncate max-w-sm sm:max-w-md text-slate-400">&quot;{err.text}&quot;</span>
+                              <span className="text-amber-400 shrink-0">({err.actualCount}/{accountFormatFields.length} trường)</span>
+                            </div>
+                          ))}
+                          {bulkValidation.errorLines.length > 8 && (
+                            <div className="text-[11px] text-slate-500 italic pt-0.5">
+                              ...và {bulkValidation.errorLines.length - 8} dòng lỗi khác
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

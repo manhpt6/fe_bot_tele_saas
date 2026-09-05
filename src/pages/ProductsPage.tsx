@@ -31,9 +31,11 @@ export const ProductsPage = () => {
   const [filterDeliveryMode, setFilterDeliveryMode] = useState<string>('');
   const [filterActive, setFilterActive] = useState<string>('');
 
+  const [pageSize, setPageSize] = useState(10);
+
   const { data: pageResponse, isLoading } = useGetProductsQuery({
     page,
-    size: 10,
+    size: pageSize,
     keyword: debouncedSearchTerm,
     categoryId: filterCategoryId ? Number(filterCategoryId) : undefined
   });
@@ -389,7 +391,8 @@ export const ProductsPage = () => {
       </div>
 
       <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table: >= 768px */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-700/50 bg-slate-800/30 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -526,13 +529,113 @@ export const ProductsPage = () => {
           </table>
         </div>
 
+        {/* Mobile Cards: < 768px */}
+        <div className="md:hidden divide-y divide-slate-800/80">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">Đang tải dữ liệu...</div>
+          ) : products.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              <Package size={40} className="mx-auto mb-2 opacity-20" />
+              <p>Chưa có sản phẩm nào</p>
+            </div>
+          ) : (
+            products.map((product) => (
+              <div key={product.id} className="p-4 bg-slate-900/40 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyCode(e, product.slug)}
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-mono font-bold border ${
+                      copiedSlug === product.slug
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : 'bg-slate-800 text-purple-400 border-slate-700'
+                    }`}
+                  >
+                    {copiedSlug === product.slug ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    <span>{product.slug}</span>
+                  </button>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                      product.isActive
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                    }`}
+                  >
+                    {product.isActive ? 'Đang bán' : 'Tạm ngừng'}
+                  </span>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="w-12 h-12 object-cover rounded-lg border border-slate-700 shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/50 flex items-center justify-center text-slate-600 shrink-0">
+                      <ImageIcon size={20} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-white text-sm truncate">{product.name}</div>
+                    <div className="text-green-400 font-bold font-mono text-sm mt-0.5">
+                      {product.price.toLocaleString()}đ
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
+                  <div>
+                    <span className="text-slate-400 text-[11px] block">Tồn kho:</span>
+                    <span className={`font-mono font-semibold ${product.stockCount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {product.stockCount} {product.deliveryMode === 'AUTO' ? 'acc' : 'sẵn'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[11px] block">Giao hàng:</span>
+                    <span className="font-medium text-slate-300">
+                      {product.deliveryMode === 'AUTO' ? '⚡ Tự động' : '👤 Thủ công'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setViewProductInfo(product)}
+                    className="px-2.5 py-1 text-slate-300 hover:text-blue-400 bg-slate-800 hover:bg-slate-700 rounded text-xs flex items-center gap-1"
+                  >
+                    <Eye size={13} />
+                    Xem
+                  </button>
+                  <button
+                    onClick={() => handleOpenModal(product)}
+                    className="px-2.5 py-1 text-orange-300 hover:text-orange-200 bg-orange-600/20 border border-orange-500/30 rounded text-xs flex items-center gap-1"
+                  >
+                    <Edit2 size={13} />
+                    Sửa
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product.id)}
+                    className="px-2.5 py-1 text-red-300 hover:text-red-200 bg-red-600/20 border border-red-500/30 rounded text-xs flex items-center gap-1"
+                  >
+                    <Trash2 size={13} />
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
         {pageResponse && (
           <Pagination
             currentPage={pageResponse.pageNumber}
             totalPages={pageResponse.totalPages}
             totalElements={pageResponse.totalElements}
-            pageSize={pageResponse.pageSize}
+            pageSize={pageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
             onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(0);
+            }}
           />
         )}
       </div>

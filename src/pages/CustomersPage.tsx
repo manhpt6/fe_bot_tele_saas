@@ -64,7 +64,7 @@ export const CustomersPage: React.FC = () => {
   const [keyword, setKeyword] = useState('');
   const [statusTab, setStatusTab] = useState<'ACTIVE' | 'DELETED' | 'ALL'>('ACTIVE');
   const [page, setPage] = useState(0);
-  const size = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const isDeletedParam =
     statusTab === 'ACTIVE' ? false : statusTab === 'DELETED' ? true : undefined;
@@ -73,7 +73,7 @@ export const CustomersPage: React.FC = () => {
     keyword: keyword.trim() || undefined,
     isDeleted: isDeletedParam,
     page,
-    size,
+    size: pageSize,
   });
 
   const [softDeleteCustomer] = useSoftDeleteCustomerMutation();
@@ -85,6 +85,7 @@ export const CustomersPage: React.FC = () => {
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [viewCustomer, setViewCustomer] = useState<TelegramCustomer | null>(null);
+  const [adjustWalletCustomer, setAdjustWalletCustomer] = useState<TelegramCustomer | null>(null);
   const [hardDeleteTarget, setHardDeleteTarget] = useState<TelegramCustomer | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -323,9 +324,11 @@ export const CustomersPage: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
+      {/* Bảng danh sách Khách hàng */}
+      <div className="glass rounded-xl border border-slate-800 overflow-hidden shadow-xl">
+        {/* Desktop Table: >= 768px */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-slate-950 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
               <tr>
                 <th className="p-4 w-10 text-center">
@@ -351,7 +354,7 @@ export const CustomersPage: React.FC = () => {
                 <th className="p-4 text-center">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-800/60 text-sm">
               {isLoading ? (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-400">
@@ -426,13 +429,16 @@ export const CustomersPage: React.FC = () => {
                       </td>
                       <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-2">
-                           <button onClick={() => setViewCustomer(customer)} className="text-slate-400 hover:text-blue-400"><Eye size={16} /></button>
-                           {!customer.isDeleted ? (
-                            <button onClick={() => handleSoftDelete(customer.id)} className="text-slate-400 hover:text-red-400"><Trash2 size={16} /></button>
-                           ) : (
-                            <button onClick={() => handleRestore(customer.id)} className="text-slate-400 hover:text-emerald-400"><RotateCcw size={16} /></button>
+                           <button onClick={() => setViewCustomer(customer)} className="text-slate-400 hover:text-blue-400" title="Xem chi tiết"><Eye size={16} /></button>
+                           {isAdmin && !customer.isDeleted && (
+                            <button onClick={() => setAdjustWalletCustomer(customer)} className="text-slate-400 hover:text-emerald-400" title="Điều chỉnh ví"><Coins size={16} /></button>
                            )}
-                           <button onClick={() => setHardDeleteTarget(customer)} className="text-slate-400 hover:text-rose-500"><AlertTriangle size={16} /></button>
+                           {!customer.isDeleted ? (
+                            <button onClick={() => handleSoftDelete(customer.id)} className="text-slate-400 hover:text-red-400" title="Xóa mềm"><Trash2 size={16} /></button>
+                           ) : (
+                            <button onClick={() => handleRestore(customer.id)} className="text-slate-400 hover:text-emerald-400" title="Khôi phục"><RotateCcw size={16} /></button>
+                           )}
+                           <button onClick={() => setHardDeleteTarget(customer)} className="text-slate-400 hover:text-rose-500" title="Xóa vĩnh viễn"><AlertTriangle size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -443,14 +449,116 @@ export const CustomersPage: React.FC = () => {
           </table>
         </div>
 
-        {data && data.totalPages > 1 && (
+        {/* Mobile Cards: < 768px */}
+        <div className="md:hidden divide-y divide-slate-800/80">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-400">Đang tải danh sách khách hàng...</div>
+          ) : !data?.content || data.content.length === 0 ? (
+            <div className="p-8 text-center text-slate-400">Không tìm thấy khách hàng nào phù hợp.</div>
+          ) : (
+            data.content.map((customer) => {
+              const borderAccent = customer.isDeleted
+                ? 'border-l-4 border-l-rose-500'
+                : 'border-l-4 border-l-emerald-500';
+
+              return (
+                <div
+                  key={customer.id}
+                  onClick={() => setViewCustomer(customer)}
+                  className={`p-4 bg-slate-900/40 space-y-3 cursor-pointer hover:bg-slate-800/40 transition-colors ${borderAccent} ${
+                    customer.isDeleted ? 'opacity-70' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-white text-base">
+                        {[customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Khách hàng'}
+                      </div>
+                      <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                        {customer.username ? (
+                          <span className="text-blue-400 font-medium">@{customer.username}</span>
+                        ) : (
+                          <span className="italic">Chưa có username</span>
+                        )}
+                        <span>•</span>
+                        <span className="font-mono text-slate-300">ID: {customer.telegramId}</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                        customer.isDeleted
+                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      {customer.isDeleted ? 'Đã xóa' : 'Hoạt động'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-xs">
+                    <div>
+                      <div className="text-slate-400 text-[11px]">Số dư ví</div>
+                      <div className="text-emerald-400 font-bold font-mono mt-0.5">
+                        {formatMoney(customer.walletBalance)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-slate-400 text-[11px]">Đơn hàng</div>
+                      <div className="text-indigo-300 font-bold mt-0.5">
+                        {customer.totalOrders} đơn
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-slate-400 text-[11px]">Chi tiêu</div>
+                      <div className="text-amber-400 font-bold font-mono mt-0.5">
+                        {formatMoney(customer.totalSpent)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-[11px] text-slate-500">
+                      Gần nhất: {formatDate(customer.lastSeen)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setViewCustomer(customer)}
+                        className="px-2.5 py-1 bg-blue-600/20 text-blue-300 border border-blue-500/30 hover:bg-blue-600 hover:text-white rounded text-xs flex items-center gap-1 font-medium"
+                      >
+                        <Eye size={13} />
+                        Chi tiết
+                      </button>
+                      {isAdmin && !customer.isDeleted && (
+                        <button
+                          onClick={() => setAdjustWalletCustomer(customer)}
+                          className="px-2.5 py-1 bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white rounded text-xs flex items-center gap-1 font-medium"
+                        >
+                          <Coins size={13} />
+                          Ví
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {data && (
           <Pagination
             currentPage={data.pageNumber}
             totalPages={data.totalPages}
             totalElements={data.totalElements}
-            pageSize={data.pageSize}
+            pageSize={pageSize}
+            pageSizeOptions={[10, 25, 50, 100]}
             onPageChange={(p) => {
               setPage(p);
+              setSelectedIds([]);
+            }}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(0);
               setSelectedIds([]);
             }}
           />
@@ -465,6 +573,15 @@ export const CustomersPage: React.FC = () => {
           onClose={() => setViewCustomer(null)}
           formatMoney={formatMoney}
           formatDate={formatDate}
+        />
+      )}
+
+      {/* Modal Điều chỉnh ví nhanh mở từ trang chính */}
+      {adjustWalletCustomer && (
+        <AdjustWalletModal
+          customer={adjustWalletCustomer}
+          onClose={() => setAdjustWalletCustomer(null)}
+          formatMoney={formatMoney}
         />
       )}
 
